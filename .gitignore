@@ -1,0 +1,6 @@
+# 원본 책 파일은 저작권 보호를 위해 저장소에 올리지 않음
+books/*
+!books/.gitkeep
+node_modules/
+.env*
+.DS_Store
