@@ -2,23 +2,103 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "진단 문항",
   "type": "object",
-  "required": ["id", "domain", "category", "question", "answer_type", "risk_rule", "risk_level", "recommendation"],
+  "required": [
+    "id",
+    "domain",
+    "category",
+    "question",
+    "answer_type",
+    "risk_rule",
+    "signal",
+    "risk_level",
+    "recommendation"
+  ],
   "properties": {
-    "id": { "type": "string", "description": "예: LAB-001, FUND-001, ACC-001" },
-    "domain": { "enum": ["policy-fund", "accounting", "labor"] },
-    "category": { "type": "string", "description": "예: 근로계약, 임금, 신청자격" },
-    "question": { "type": "string" },
-    "help": { "type": "string", "description": "컨설턴트용 설명, 확인할 서류" },
-    "answer_type": { "enum": ["yes_no", "number", "single_choice", "multi_choice", "text", "file"] },
-    "options": { "type": "array", "items": { "type": "string" } },
-    "applies_if": { "type": "string", "description": "적용 조건. 예: employees >= 5" },
-    "risk_rule": { "type": "string", "description": "위험으로 판단하는 답. 예: answer == '아니오'" },
-    "risk_level": { "enum": ["high", "medium", "low"] },
-    "score_weight": { "type": "number", "default": 1 },
-    "legal_basis": { "type": "string", "description": "근거 법령·조문" },
-    "consequence": { "type": "string", "description": "위반·미비 시 불이익" },
-    "recommendation": { "type": "string", "description": "리포트에 나갈 개선 권고" },
-    "source": { "type": "string", "description": "출처 책과 장·페이지" },
-    "verified_at": { "type": "string", "format": "date", "description": "최신 법령 기준으로 확인한 날짜" }
+    "id": {
+      "type": "string",
+      "description": "예: LAB-001, FUND-001, ACC-001"
+    },
+    "domain": {
+      "enum": [
+        "policy-fund",
+        "accounting",
+        "labor"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "description": "예: 근로계약, 임금, 신청자격"
+    },
+    "question": {
+      "type": "string"
+    },
+    "help": {
+      "type": "string",
+      "description": "컨설턴트용 설명, 확인할 서류"
+    },
+    "answer_type": {
+      "enum": [
+        "yes_no",
+        "number",
+        "single_choice",
+        "multi_choice",
+        "text",
+        "file"
+      ]
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applies_if": {
+      "type": "string",
+      "description": "적용 조건. 예: employees >= 5"
+    },
+    "risk_rule": {
+      "type": "string",
+      "description": "위험으로 판단하는 조건(answer 변수 사용). 예: answer == '아니오', answer > 200. 'False'는 정보 수집용(위험 판정 없음)"
+    },
+    "signal": {
+      "enum": [
+        "red",
+        "yellow",
+        "blue"
+      ],
+      "description": "red=결격(해결 전 신청 불가), yellow=감점(설명·보완 필요), blue=가점(갖추면 유리)"
+    },
+    "risk_level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "score_weight": {
+      "type": "number",
+      "default": 1
+    },
+    "legal_basis": {
+      "type": "string",
+      "description": "근거 법령·조문"
+    },
+    "consequence": {
+      "type": "string",
+      "description": "위반·미비 시 불이익"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "리포트에 나갈 개선 권고"
+    },
+    "source": {
+      "type": "string",
+      "description": "출처 책과 장·페이지"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date",
+      "description": "최신 법령 기준으로 확인한 날짜"
+    }
   }
 }
