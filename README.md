@@ -18,7 +18,7 @@
 | `knowledge/` | 책별·장별 요약 노트 (Markdown) |
 | `checklists/` | 분야별 진단 문항 데이터 (JSON) |
 | `schema/` | 진단 문항 데이터 형식 정의 |
-| `web/` | 웹 프로그램 소스 |
+| `web/` | 웹 프로그램 소스 (실행 방법은 `web/README.md`) |
 | `docs/` | 화면 설계, 진행 기록 |
 
 분야 폴더 이름: `policy-fund`(정책자금), `accounting`(회계), `labor`(노무)
