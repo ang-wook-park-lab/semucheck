@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { domains } from '../lib/checklists'
 import { can, ROLE_LABEL } from '../lib/permissions'
 import { Icon } from './ui'
+import { getViewPref, setViewPref, usePhone } from '../lib/viewMode'
 
 const CRUMBS: [RegExp, string[]][] = [
   [/^\/$/, ['홈']],
@@ -42,6 +43,8 @@ export default function Layout() {
   const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ['홈']
   const role = user?.role
   const ready = domains.filter((d) => d.ready)
+  const phone = usePhone()
+  if (phone) return <PhoneShell />
   return (
     <div className="app">
       <aside className="sidebar">
@@ -102,6 +105,9 @@ export default function Layout() {
             ))}
           </div>
           <div className="top-actions">
+            {getViewPref() === 'pc' && (
+              <button type="button" className="btn small" onClick={() => setViewPref('auto')} data-testid="goto-mobile">모바일 버전</button>
+            )}
             {demo && <span className="demo-pill" title="서버 DB나 Supabase가 연결되지 않아 이 브라우저에만 저장됩니다">데모 모드</span>}
             <span className="who">{user?.username}</span>
             <button className="icon-btn" onClick={() => signOut()} title="로그아웃">
@@ -113,6 +119,51 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+    </div>
+  )
+}
+
+/** 휴대폰 화면: 위에 이름·PC 버전 버튼, 아래에 큰 탭(홈·업체·내역·계정). 손가락으로 누르기 쉽게 만든다. */
+function PhoneShell() {
+  const { user, demo, signOut } = useAuth()
+  const role = user?.role
+  const tabs: { to: string; icon: string; label: string }[] =
+    role === 'client'
+      ? [{ to: '/', icon: 'doc', label: '내 보고서' }, { to: '/account', icon: 'user', label: '내 계정' }]
+      : [
+          { to: '/', icon: 'home', label: '홈' },
+          { to: '/clients', icon: 'users', label: '업체' },
+          { to: '/diagnoses', icon: 'doc', label: '내역' },
+          { to: '/account', icon: 'user', label: '내 계정' },
+        ]
+  const { pathname } = useLocation()
+  const active = (to: string) => (to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(to + '/'))
+  return (
+    <div className="phone-app" data-testid="phone-app">
+      <header className="phone-top">
+        <div className="phone-who" data-testid="brand-user">
+          <div className="phone-brand">열린세무회계 컨설팅 그룹</div>
+          <div className="phone-name">
+            {user?.name} <span className={`role-pill role-${role}`}>{role ? ROLE_LABEL[role] : ''}</span>
+            {demo && <span className="demo-pill">데모</span>}
+          </div>
+        </div>
+        <div className="phone-actions">
+          <button type="button" className="phone-pc" onClick={() => setViewPref('pc')} data-testid="goto-pc-top">PC 버전</button>
+          <button type="button" className="phone-out" onClick={() => signOut()} title="로그아웃" aria-label="로그아웃"><Icon name="logout" /></button>
+        </div>
+      </header>
+      <main className="content phone-content">
+        <Outlet />
+      </main>
+      <nav className="phone-tabs" aria-label="메뉴" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+        {tabs.map((t) => (
+          <Link key={t.to} to={t.to} className={`phone-tab ${active(t.to) ? 'active' : ''}`} aria-current={active(t.to) ? 'page' : undefined}>
+            <Icon name={t.icon} size={22} />
+            <span>{t.label}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   )
 }

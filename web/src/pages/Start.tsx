@@ -6,12 +6,15 @@ import { newId } from '../lib/store'
 import { useData } from '../lib/useData'
 import type { Answer, Client, Diagnosis, DiagnosisMode } from '../lib/types'
 import ClientForm from '../components/ClientForm'
+import { usePhone } from '../lib/viewMode'
 
 export default function Start() {
   const { domain: key } = useParams()
   const [search, setSearch] = useSearchParams()
   const domain = key ? getDomain(key) : undefined
-  const { clients, loading, store } = useData()
+  const { clients, diagnoses, loading, store } = useData()
+  const phone = usePhone()
+  const [q, setQ] = useState('')
   const { user } = useAuth()
   const nav = useNavigate()
   const [clientId, setClientId] = useState('')
@@ -76,6 +79,27 @@ export default function Start() {
                   <p className="empty">불러오는 중…</p>
                 ) : clients.length === 0 ? (
                   <p className="empty">{user?.role === 'consultant' ? '내 담당 고객사가 없습니다. 오른쪽에서 새로 등록하세요.' : '등록된 고객사가 없습니다. 오른쪽에서 새로 등록하세요.'}</p>
+                ) : phone ? (
+                  <>
+                    <input type="search" className="wide-select" placeholder="업체명 검색" aria-label="업체 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+                    <ul className="cp-list" data-testid="client-pick-list">
+                      {clients
+                        .filter((c) => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase()))
+                        .map((c) => {
+                          // 같은 업체·분야·방식으로 진행 중인 진단이 있으면 새로 만들지 않고 이어서 한다
+                          const going = diagnoses.find((d) => d.clientId === c.id && d.domain === domain.key && (d.mode ?? 'full') === mode && d.status !== 'completed')
+                          return (
+                            <li key={c.id}>
+                              <button type="button" className="cp-btn" data-testid="client-pick" onClick={() => (going ? nav(`/diagnosis/${going.id}`) : void begin(c, false))}>
+                                <span className="cp-name">{c.name}{c.isSample && <span className="chip chip-gray">샘플</span>}</span>
+                                <span className="cp-sub">{c.profile.industry} · 업력 {c.profile.business_age}년 · 근로자 {c.profile.employees}명{user?.role === 'admin' && c.ownerName ? ` · 담당 ${c.ownerName}` : ''}</span>
+                                <span className={`cp-go ${going ? 'cp-resume' : ''}`}>{going ? '진행 중 · 이어하기 ›' : `${mode === 'quick' ? '간단' : '정밀'} 진단 시작 ›`}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                    </ul>
+                  </>
                 ) : (
                   <>
                     <select className="wide-select" value={clientId} onChange={(e) => setClientId(e.target.value)} aria-label="고객사 선택">
@@ -92,8 +116,18 @@ export default function Start() {
               </div>
             </section>
             <section>
-              <h2 className="section-title">새 고객사 등록 후 시작</h2>
-              <ClientForm submitLabel="저장하고 진단 시작" onSubmit={(c) => begin(c, true)} />
+              {phone && clients.length > 0 ? (
+                // 휴대폰: 긴 등록 양식이 업체 목록을 밀어내지 않도록 접어 둔다
+                <details className="cp-new" data-testid="new-client-details">
+                  <summary>+ 새 업체 등록 후 시작</summary>
+                  <ClientForm submitLabel="저장하고 진단 시작" onSubmit={(c) => begin(c, true)} />
+                </details>
+              ) : (
+                <>
+                  <h2 className="section-title">새 고객사 등록 후 시작</h2>
+                  <ClientForm submitLabel="저장하고 진단 시작" onSubmit={(c) => begin(c, true)} />
+                </>
+              )}
             </section>
           </div>
         </>

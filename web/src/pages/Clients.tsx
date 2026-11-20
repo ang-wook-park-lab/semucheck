@@ -5,12 +5,14 @@ import { importClientRows, listUsers } from '../lib/admin'
 import { downloadBlob } from '../lib/download'
 import { exportClientsXlsx, parseClientsXlsx, xlsxFileName, ExcelError, type ClientImportRow, type OwnerRef } from '../lib/excel'
 import { useData } from '../lib/useData'
+import { usePhone } from '../lib/viewMode'
 import { fmtDate, Icon } from '../components/ui'
 import ClientForm from '../components/ClientForm'
 import FilePicker from '../components/FilePicker'
 import ImportPreview from '../components/ImportPreview'
 
 export default function Clients() {
+  const phone = usePhone()
   const { user, mode } = useAuth()
   const { clients, diagnoses, reload, store, error } = useData()
   const isAdmin = user?.role === 'admin'
@@ -80,6 +82,18 @@ export default function Clients() {
       <div className="panel">
         {clients.length === 0 ? (
           <p className="empty">등록된 고객사가 없습니다.</p>
+        ) : phone ? (
+          <ul className="cp-list" data-testid="client-cards">
+            {clients.map((c) => (
+              <li key={c.id}>
+                <Link className="cp-btn" to={`/clients/${c.id}`} data-testid="client-card">
+                  <span className="cp-name">{c.name}{c.isSample && <span className="chip chip-gray">샘플</span>}</span>
+                  <span className="cp-sub">{c.profile.industry} · 업력 {c.profile.business_age}년 · 근로자 {c.profile.employees}명{showOwner && c.ownerName ? ` · 담당 ${c.ownerName}` : ''}</span>
+                  <span className="cp-go">진단 {diagnoses.filter((d) => d.clientId === c.id).length}건 · 상세 ›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         ) : (
           <table className="table">
             <thead>

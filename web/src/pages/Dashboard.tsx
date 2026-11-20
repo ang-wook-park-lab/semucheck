@@ -5,12 +5,15 @@ import { can, ROLE_LABEL } from '../lib/permissions'
 import { useData } from '../lib/useData'
 import DiagnosisTable from '../components/DiagnosisTable'
 import { LabelBox } from '../components/ui'
+import MobileHome from '../components/MobileHome'
+import { usePhone } from '../lib/viewMode'
 
 export default function Dashboard() {
   const { user } = useAuth()
   const { clients, diagnoses, loading, error } = useData()
   const role = user?.role
   const done = diagnoses.filter((d) => d.status === 'completed').length
+  const phone = usePhone()
 
   // 고객: 자기 회사의 완료된 진단 보고서만 읽기 전용으로 본다
   if (!can(role, 'editData')) {
@@ -23,6 +26,9 @@ export default function Dashboard() {
       </>
     )
   }
+
+  // 휴대폰: 상담 중에 누르기 쉬운 큰 버튼 홈
+  if (phone) return <MobileHome />
 
   return (
     <>
