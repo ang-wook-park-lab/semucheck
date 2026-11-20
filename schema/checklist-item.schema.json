@@ -60,6 +60,7 @@
       "type": "string",
       "description": "위험으로 판단하는 조건(answer 변수 사용). 예: answer == '아니오', answer > 200. 'False'는 정보 수집용(위험 판정 없음)"
     },
+    "quick": { "type": "boolean", "description": "true 면 간단 진단에 포함되는 문항" },
     "signal": {
       "enum": [
         "red",

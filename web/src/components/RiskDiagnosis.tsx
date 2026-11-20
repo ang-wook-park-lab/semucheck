@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { buildEnv, isApplicable, signalOf, weightOf } from '../lib/report'
 import { isRisk } from '../lib/rules'
-import type { Domain } from '../lib/checklists'
+import { itemsForMode, type Domain } from '../lib/checklists'
 import type { ReadyEditor } from '../lib/useDiagnosisEditor'
 import type { Answer, ChecklistItem } from '../lib/types'
+import DiagnosisExcel from './DiagnosisExcel'
 import { fmtTime, LabelBox, Progress, SignalChip } from './ui'
 
 function AnswerInput({ item, value, onChange }: { item: ChecklistItem; value: Answer | undefined; onChange: (v: Answer | undefined) => void }) {
@@ -49,7 +50,8 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
   const [cat, setCat] = useState<string>('')
 
   const env = useMemo(() => buildEnv(client.profile, diag.answers), [client, diag])
-  const applicable = useMemo(() => domain.items.filter((i) => isApplicable(i, env)), [domain, env])
+  const modeItems = useMemo(() => itemsForMode(domain, diag.mode), [domain, diag.mode])
+  const applicable = useMemo(() => modeItems.filter((i) => isApplicable(i, env)), [modeItems, env])
   const categories = useMemo(() => [...new Set(applicable.map((i) => i.category))], [applicable])
   const activeCat = categories.includes(cat) ? cat : categories[0]
 
@@ -57,13 +59,14 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
   const total = applicable.length
   const answered = answeredIn(applicable)
   const shown = applicable.filter((i) => i.category === activeCat)
-  const excluded = domain.items.length - total
+  const excluded = modeItems.length - total
 
   return (
     <div className="diag-layout">
       <aside className="side-panel">
         <h3 className="panel-h">▸ 고객사</h3>
         <LabelBox label="고객사">{client.name}</LabelBox>
+        <LabelBox label="진단 방식">{diag.mode === 'quick' ? '간단 진단' : '정밀 진단'}</LabelBox>
         <LabelBox label="업종">{client.profile.industry}</LabelBox>
         <LabelBox label="업력 · 근로자">{client.profile.business_age}년 · {client.profile.employees}명</LabelBox>
         <h3 className="panel-h">▸ 진행 현황</h3>
@@ -91,10 +94,12 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
         </div>
         <button className="btn primary wide" onClick={() => finish('completed')}>진단 완료 · 보고서 보기</button>
         <button className="btn wide" onClick={() => finish(diag.status)}>저장하고 보고서 미리보기</button>
+        <h3 className="panel-h">▸ 엑셀</h3>
+        <DiagnosisExcel domain={domain} ed={ed} compact />
       </aside>
 
       <section className="questions">
-        <h1 className="page-title">{domain.label} 체크리스트 <span className="muted">· {activeCat}</span></h1>
+        <h1 className="page-title">{domain.label} {diag.mode === 'quick' ? '간단진단' : '체크리스트'} <span className="muted">· {activeCat}</span></h1>
         {shown.map((item) => {
           const v = diag.answers[item.id]
           const sig = signalOf(item)

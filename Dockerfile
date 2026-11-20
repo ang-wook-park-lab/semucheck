@@ -26,10 +26,10 @@ WORKDIR /app
 COPY deploy/package.json deploy/package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 COPY --from=build /repo/web/dist ./dist
-COPY deploy/server.mjs deploy/api.mjs ./
+COPY deploy/server.mjs deploy/api.mjs deploy/sample.mjs deploy/sample-data.json ./
 USER node
 EXPOSE 3000
 # 호스팅이 PORT 를 주입한다(없으면 3000).
-#  SITE_PASSWORD : 설정하면 사이트 전체가 비밀번호로 보호된다.
-#  DATABASE_URL  : 설정하면 Postgres 에 계정·고객사·진단을 저장한다(없으면 데모 모드).
+#  DATABASE_URL    : 설정하면 Postgres 에 계정·고객사·진단을 저장한다(없으면 데모 모드).
+#  ADMIN_USERNAME / ADMIN_PASSWORD : 계정이 하나도 없을 때 만들 최초 관리자(첫 로그인 때 비밀번호 변경).
 CMD ["node", "server.mjs"]

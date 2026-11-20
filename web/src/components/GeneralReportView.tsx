@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { buildGeneralReport, STATUS_LABEL, STATUS_MARK, type GmFinding } from '../lib/general'
+import type { Domain } from '../lib/checklists'
+import { can } from '../lib/permissions'
+import { downloadBlob } from '../lib/download'
+import { exportGeneralReportXlsx, xlsxFileName } from '../lib/excel'
 import type { Client, Diagnosis, GmChecklist } from '../lib/types'
 import { fmtDate, Icon, LabelBox } from './ui'
 
@@ -23,7 +27,7 @@ function Finding({ f }: { f: GmFinding }) {
   )
 }
 
-export default function GeneralReportView({ checklist, diag, client }: { checklist: GmChecklist; diag: Diagnosis; client: Client }) {
+export default function GeneralReportView({ domain, checklist, diag, client }: { domain: Domain; checklist: GmChecklist; diag: Diagnosis; client: Client }) {
   const { user } = useAuth()
   const r = buildGeneralReport(checklist, diag, client)
   const unverified = checklist.areas.flatMap((a) => a.items).filter((i) => !i.verified_at).length
@@ -33,14 +37,19 @@ export default function GeneralReportView({ checklist, diag, client }: { checkli
   return (
     <article className="report">
       <div className="report-actions no-print">
-        <Link className="btn" to={`/diagnosis/${diag.id}`}>← 점검표 수정</Link>
-        <button className="btn primary" onClick={() => window.print()}><Icon name="print" size={16} /> 인쇄 · PDF로 저장</button>
+        {can(user?.role, 'editData') ? <Link className="btn" to={`/diagnosis/${diag.id}`}>← 점검표 수정</Link> : <Link className="btn" to="/">← 내 보고서 목록</Link>}
+        <div className="btn-row">
+          <button className="btn" onClick={async () => downloadBlob(await exportGeneralReportXlsx(domain, client, diag, r), xlsxFileName('보고서', client.name, domain.label + (diag.mode === 'quick' ? '간단' : '')))}>
+            <Icon name="download" size={16} /> 엑셀로 내려받기
+          </button>
+          <button className="btn primary" onClick={() => window.print()}><Icon name="print" size={16} /> 인쇄 · PDF로 저장</button>
+        </div>
       </div>
 
       <header className="report-head">
-        <p className="muted">{checklist.title} 보고서</p>
+        <p className="muted">{checklist.title} 보고서{diag.mode === 'quick' ? ' · 간단 진단' : ''}</p>
         <h1>{client.name}</h1>
-        <p className="muted">점검일 {r.inspectDate || fmtDate(diag.updatedAt)} · 점검자 {user?.email} · {client.profile.industry} · 업력 {client.profile.business_age}년 · 근로자 {client.profile.employees}명</p>
+        <p className="muted">점검일 {r.inspectDate || fmtDate(diag.updatedAt)} · 점검자 {user?.name} · {client.profile.industry} · 업력 {client.profile.business_age}년 · 근로자 {client.profile.employees}명</p>
       </header>
 
       <section className={`verdict v-${TONE[r.verdict.level]}`}>

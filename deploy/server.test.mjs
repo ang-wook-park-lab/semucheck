@@ -6,7 +6,6 @@ import path from 'node:path'
 import { createApp } from './server.mjs'
 
 let dir, open, locked, openUrl, lockedUrl
-const basic = (u, p) => 'Basic ' + Buffer.from(`${u}:${p}`).toString('base64')
 const listen = (app) => new Promise((r) => app.listen(0, '127.0.0.1', () => r(`http://127.0.0.1:${app.address().port}`)))
 
 before(async () => {
@@ -15,8 +14,8 @@ before(async () => {
   writeFileSync(path.join(dir, 'index.html'), '<!doctype html><title>세무체크</title><div id="root"></div>')
   writeFileSync(path.join(dir, 'assets', 'app-abc123.js'), 'console.log("hi")'.repeat(100))
   writeFileSync(path.join(dir, 'secret.txt'), 'root file')
-  open = createApp({ staticDir: dir, password: '' })
-  locked = createApp({ staticDir: dir, user: 'consultant', password: 'pa55w0rd한글', supabaseUrl: 'https://abc.supabase.co' })
+  open = createApp({ staticDir: dir })
+  locked = createApp({ staticDir: dir, supabaseUrl: 'https://abc.supabase.co' })
   openUrl = await listen(open)
   lockedUrl = await listen(locked)
 })
@@ -26,7 +25,7 @@ after(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-test('healthz는 인증 없이 200', async () => {
+test('healthz는 200', async () => {
   assert.equal((await fetch(`${openUrl}/healthz`)).status, 200)
   assert.equal((await fetch(`${lockedUrl}/healthz`)).status, 200)
 })
@@ -92,34 +91,21 @@ test('POST 등 허용하지 않는 메서드는 405, HEAD는 본문 없음', asy
   assert.equal(await h.text(), '')
 })
 
-test('비밀번호 보호: 인증 없음/틀림은 401, 맞으면 200 (한글 비밀번호 포함)', async () => {
-  const none = await fetch(lockedUrl)
-  assert.equal(none.status, 401)
-  assert.match(none.headers.get('www-authenticate'), /Basic/)
-  assert.equal((await fetch(lockedUrl, { headers: { authorization: basic('consultant', 'wrong') } })).status, 401)
-  assert.equal((await fetch(lockedUrl, { headers: { authorization: basic('other', 'pa55w0rd한글') } })).status, 401)
-  assert.equal((await fetch(lockedUrl, { headers: { authorization: basic('consultant', 'pa55w0rd한글') } })).status, 200)
-  assert.equal((await fetch(`${lockedUrl}/assets/app-abc123.js`)).status, 401) // 번들도 보호
-})
-
-test('인증 실패가 반복되면 429로 제한', async () => {
-  const app = createApp({ staticDir: dir, password: 'x1' })
+test('접속 전 브라우저 로그인 팝업(HTTP Basic)은 없다 — SITE_PASSWORD 가 남아 있어도 무시한다', async () => {
+  const saved = [process.env.SITE_PASSWORD, process.env.SITE_USER]
+  process.env.SITE_PASSWORD = 'left-over'
+  process.env.SITE_USER = 'test1'
+  const app = createApp({ staticDir: dir })
+  for (const [i, v] of saved.entries()) {
+    const k = ['SITE_PASSWORD', 'SITE_USER'][i]
+    if (v === undefined) delete process.env[k]
+    else process.env[k] = v
+  }
   const url = await listen(app)
-  let last = 0
-  for (let i = 0; i < 12; i++) last = (await fetch(url, { headers: { authorization: basic('a', 'b') } })).status
-  assert.equal(last, 429)
-  // 맞는 자격이라도 제한 시간 중에는 거부
-  assert.equal((await fetch(url, { headers: { authorization: basic('consultant', 'x1') } })).status, 429)
-  app.close()
-})
-
-test('SITE_USER 를 따로 정하지 않으면 아이디는 test1', async () => {
-  const saved = process.env.SITE_USER
-  delete process.env.SITE_USER
-  const app = createApp({ staticDir: dir, password: 'only-password' })
-  if (saved !== undefined) process.env.SITE_USER = saved
-  const url = await listen(app)
-  assert.equal((await fetch(url, { headers: { authorization: basic('test1', 'only-password') } })).status, 200)
-  assert.equal((await fetch(url, { headers: { authorization: basic('consultant', 'only-password') } })).status, 401)
+  for (const p of ['/', '/assets/app-abc123.js', '/clients']) {
+    const r = await fetch(url + p)
+    assert.equal(r.status, 200, p)
+    assert.equal(r.headers.get('www-authenticate'), null, p)
+  }
   app.close()
 })

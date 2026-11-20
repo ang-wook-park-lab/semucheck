@@ -11,6 +11,8 @@ export interface ReadyEditor {
   saveErr: string | null
   setAnswer(itemId: string, v: Answer | undefined): void
   setNote(itemId: string, text: string): void
+  /** 엑셀에서 읽은 응답·메모로 한꺼번에 바꾼다 */
+  replaceData(answers: Record<string, Answer>, notes: Record<string, string>): void
   finish(status: Diagnosis['status']): Promise<void>
 }
 
@@ -67,6 +69,11 @@ export function useDiagnosisEditor(id: string | undefined) {
     })
   }, [])
 
+  const replaceData = useCallback((answers: Record<string, Answer>, notes: Record<string, string>) => {
+    dirty.current = true
+    setDiag((d) => (d ? { ...d, answers, notes } : d))
+  }, [])
+
   const finish = useCallback(
     async (status: Diagnosis['status']) => {
       if (!store || !diag) return
@@ -90,6 +97,7 @@ export function useDiagnosisEditor(id: string | undefined) {
     saveErr,
     setAnswer,
     setNote,
+    replaceData,
     finish,
   }
 }

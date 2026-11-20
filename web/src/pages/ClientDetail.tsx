@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
+import { listUsers, type AppUser } from '../lib/admin'
 import { domains } from '../lib/checklists'
 import { useData } from '../lib/useData'
 import DiagnosisTable from '../components/DiagnosisTable'
@@ -7,7 +10,13 @@ import { LabelBox } from '../components/ui'
 export default function ClientDetail() {
   const { id } = useParams()
   const { clients, diagnoses, loading, store, reload } = useData()
+  const { user, mode } = useAuth()
   const nav = useNavigate()
+  const canReassign = user?.role === 'admin' && mode === 'api'
+  const [owners, setOwners] = useState<AppUser[]>([])
+  useEffect(() => {
+    if (canReassign) listUsers().then((u) => setOwners(u.filter((x) => x.active && (x.role === 'admin' || x.role === 'consultant')))).catch(() => setOwners([]))
+  }, [canReassign])
   if (loading) return <p className="empty">불러오는 중…</p>
   const client = clients.find((c) => c.id === id)
   if (!client) return <Navigate to="/clients" replace />
@@ -35,6 +44,27 @@ export default function ClientDetail() {
         <LabelBox label="상시근로자">{p.employees}명</LabelBox>
         <LabelBox label="장부">{p.bookkeeping}</LabelBox>
       </div>
+      {canReassign && (
+        <p className="owner-row">
+          <label>
+            담당 컨설턴트{' '}
+            <select
+              value={client.ownerId ?? ''}
+              aria-label="담당 컨설턴트"
+              onChange={async (e) => {
+                await store?.saveClient({ ...client, ownerId: e.target.value })
+                await reload()
+              }}
+            >
+              {owners.map((o) => (
+                <option key={o.id} value={o.id}>{o.name} ({o.username})</option>
+              ))}
+            </select>
+          </label>
+          <span className="muted small"> 바꾸면 이 고객사의 진단도 함께 새 담당자에게 넘어갑니다.</span>
+        </p>
+      )}
+      {!canReassign && client.ownerName && <p className="muted small">담당 컨설턴트: {client.ownerName}</p>}
       <p className="tags">
         {p.has_research_lab && <span className="chip chip-blue">연구소·전담부서</span>}
         {p.has_venture && <span className="chip chip-blue">벤처 확인</span>}

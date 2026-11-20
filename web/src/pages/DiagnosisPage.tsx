@@ -1,5 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom'
-import { getDomain } from '../lib/checklists'
+import { getDomain, statusForMode } from '../lib/checklists'
 import { useDiagnosisEditor, type ReadyEditor } from '../lib/useDiagnosisEditor'
 import RiskDiagnosis from '../components/RiskDiagnosis'
 import GeneralCheck from '../components/GeneralCheck'
@@ -12,6 +12,6 @@ export default function DiagnosisPage() {
   const domain = getDomain(e.diag.domain)
   if (!e.client || !domain) return <Navigate to="/diagnoses" replace />
   const ed: ReadyEditor = { ...e, diag: e.diag, client: e.client }
-  if (domain.kind === 'status' && domain.status) return <GeneralCheck ed={ed} checklist={domain.status} />
+  if (domain.kind === 'status' && domain.status) return <GeneralCheck ed={ed} domain={domain} checklist={statusForMode(domain.status, ed.diag.mode)} />
   return <RiskDiagnosis ed={ed} domain={domain} />
 }

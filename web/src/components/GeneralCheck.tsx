@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/auth'
 import { buildGeneralReport, isStatus, NOTE_DATE, NOTE_NEXT, NOTE_SUMMARY, STATUS_LABEL, STATUS_MARK } from '../lib/general'
+import type { Domain } from '../lib/checklists'
 import type { ReadyEditor } from '../lib/useDiagnosisEditor'
 import type { GmChecklist, StatusCode } from '../lib/types'
+import DiagnosisExcel from './DiagnosisExcel'
 import { fmtTime, LabelBox, Progress } from './ui'
 
 const CODES: StatusCode[] = ['ok', 'fix', 'bad', 'na']
 const today = () => new Date().toISOString().slice(0, 10)
 
 /** ○△×— 상태 점검표 작성 화면 (법인 일반관리 64항목). 책의 점검표 서식(8영역 카드 + 결과 요약 + 종합 코멘트 + 개선 우선순위 TOP 5)을 따른다. */
-export default function GeneralCheck({ ed, checklist }: { ed: ReadyEditor; checklist: GmChecklist }) {
+export default function GeneralCheck({ ed, domain, checklist }: { ed: ReadyEditor; domain: Domain; checklist: GmChecklist }) {
   const { diag, client, savedAt, saveErr, setAnswer, setNote, finish } = ed
   const { user } = useAuth()
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -26,7 +28,7 @@ export default function GeneralCheck({ ed, checklist }: { ed: ReadyEditor; check
     <div className="gm">
       <header className="gm-head">
         <div>
-          <h1>{checklist.title}</h1>
+          <h1>{checklist.title}{diag.mode === 'quick' ? ' · 간단 진단' : ''}</h1>
           <p>{checklist.subtitle}</p>
         </div>
         <div className="gm-form">
@@ -35,7 +37,7 @@ export default function GeneralCheck({ ed, checklist }: { ed: ReadyEditor; check
             <input type="date" value={diag.notes[NOTE_DATE] ?? today()} onChange={(e) => setNote(NOTE_DATE, e.target.value)} aria-label="점검일자" />
           </LabelBox>
           <LabelBox label="점검자">
-            <span className="small">{user?.email}</span>
+            <span className="small">{user?.name}</span>
           </LabelBox>
         </div>
       </header>
@@ -56,6 +58,7 @@ export default function GeneralCheck({ ed, checklist }: { ed: ReadyEditor; check
         </div>
         <button className="btn primary" onClick={() => finish('completed')}>점검 완료 · 보고서 보기</button>
       </div>
+      <div className="gm-excel"><DiagnosisExcel domain={domain} ed={ed} /></div>
 
       <div className="gm-grid">
         {checklist.areas.map((area, ai) => {

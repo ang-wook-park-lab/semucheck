@@ -1,7 +1,9 @@
-import type { ChecklistItem, GmChecklist } from './types'
+import type { ChecklistItem, DiagnosisMode, GmChecklist } from './types'
+import { validateRiskItems, validateStatusList } from './checklistValidate'
 
 // 저장소 루트의 checklists/<분야>/*.json 을 빌드 시점에 읽는다(지식과 코드 분리).
 // 위험 규칙 문항은 배열, 상태 점검표(○△×—)는 객체(areas)로 구분한다.
+// 관리자가 화면·엑셀로 수정한 체크리스트는 서버에 저장되고, 로그인 후 applyOverrides()로 이 원본 위에 덮어쓴다.
 const files = import.meta.glob('../../../checklists/*/*.json', { eager: true, import: 'default' }) as Record<string, unknown>
 
 export type DomainKind = 'risk' | 'status'
@@ -45,10 +47,14 @@ export interface Domain {
   items: ChecklistItem[]
   /** kind === 'status': ○△×— 상태 점검표 */
   status?: GmChecklist
-  /** 화면에 보여줄 문항 수 */
+  /** 화면에 보여줄 문항 수(정밀 진단) */
   count: number
+  /** 간단진단에 포함된 문항 수 */
+  quickCount: number
   /** 샘플 문항뿐이거나 비어 있으면 진단 시작 불가 */
   ready: boolean
+  /** 관리자가 수정한 체크리스트를 쓰고 있으면 수정 정보 */
+  override?: { updatedAt: string; updatedBy: string }
 }
 
 const META: Record<string, { label: string; description: string; kind: DomainKind; minItems: number; labels: Labels }> = {
@@ -58,26 +64,113 @@ const META: Record<string, { label: string; description: string; kind: DomainKin
   labor: { label: '노무', description: '취업규칙·근태·연차·괴롭힘·징계해고 등 노무 리스크 진단과 HR 경영보고', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
 }
 
-const riskItems: Record<string, ChecklistItem[]> = {}
-const statusLists: Record<string, GmChecklist> = {}
+// ---- 앱에 들어 있는 원본 ----
+const bundledRisk: Record<string, ChecklistItem[]> = {}
+const bundledStatus: Record<string, GmChecklist> = {}
 for (const [path, data] of Object.entries(files)) {
   const key = path.split('/').slice(-2)[0]
-  if (Array.isArray(data)) riskItems[key] = [...(riskItems[key] ?? []), ...(data as ChecklistItem[])]
-  else if (data && typeof data === 'object' && 'areas' in data) statusLists[key] = data as GmChecklist
+  if (Array.isArray(data)) bundledRisk[key] = [...(bundledRisk[key] ?? []), ...(data as ChecklistItem[])]
+  else if (data && typeof data === 'object' && 'areas' in data) bundledStatus[key] = data as GmChecklist
 }
 
-export const domains: Domain[] = Object.entries(META).map(([key, m]) => {
+const statusItems = (g?: GmChecklist) => g?.areas.flatMap((a) => a.items) ?? []
+
+function fill(d: Domain, items: ChecklistItem[], status?: GmChecklist) {
+  const m = META[d.key]
+  d.items = items
+  d.status = status
   if (m.kind === 'status') {
-    const status = statusLists[key]
-    const count = status ? status.areas.reduce((n, a) => n + a.items.length, 0) : 0
-    return { key, label: m.label, description: m.description, kind: m.kind, labels: m.labels, items: [], status, count, ready: count >= m.minItems }
+    const all = statusItems(status)
+    d.count = all.length
+    d.quickCount = all.filter((i) => i.quick).length
+    d.ready = all.length >= m.minItems
+  } else {
+    d.count = items.length
+    d.quickCount = items.filter((i) => i.quick).length
+    d.ready = items.length >= m.minItems
   }
-  const items = riskItems[key] ?? []
-  return { key, label: m.label, description: m.description, kind: m.kind, labels: m.labels, items, count: items.length, ready: items.length >= m.minItems }
+}
+
+/** 화면 전체가 같은 객체를 참조하므로 값을 바꿀 때는 제자리에서 바꾼다 */
+export const domains: Domain[] = Object.entries(META).map(([key, m]) => {
+  const d: Domain = { key, label: m.label, description: m.description, kind: m.kind, labels: m.labels, items: [], count: 0, quickCount: 0, ready: false }
+  fill(d, m.kind === 'risk' ? (bundledRisk[key] ?? []) : [], m.kind === 'status' ? bundledStatus[key] : undefined)
+  return d
 })
 
 export const allItems: ChecklistItem[] = domains.flatMap((d) => d.items)
+function refreshAllItems() {
+  allItems.length = 0
+  allItems.push(...domains.flatMap((d) => d.items))
+}
 
 export function getDomain(key: string): Domain | undefined {
   return domains.find((d) => d.key === key)
+}
+
+/** 앱에 들어 있는 원본(관리자 수정 전). 엑셀 양식·변경 비교에 쓴다 */
+export function getBundled(key: string): { items: ChecklistItem[]; status?: GmChecklist } {
+  return { items: bundledRisk[key] ?? [], status: bundledStatus[key] }
+}
+
+export interface OverrideInput {
+  data: unknown
+  updatedAt: string
+  updatedBy: string
+}
+export interface ApplyResult {
+  applied: string[]
+  rejected: { domain: string; errors: string[] }[]
+}
+
+/** 원본으로 되돌린다 */
+export function resetOverrides() {
+  for (const d of domains) {
+    const m = META[d.key]
+    fill(d, m.kind === 'risk' ? (bundledRisk[d.key] ?? []) : [], m.kind === 'status' ? bundledStatus[d.key] : undefined)
+    d.override = undefined
+  }
+  refreshAllItems()
+}
+
+/**
+ * 서버에 저장된 수정본을 원본 위에 적용한다. 검증을 통과하지 못한 분야는 적용하지 않고 원본을 쓴다
+ * (잘못된 데이터가 모두의 화면을 깨뜨리지 않도록).
+ */
+export function applyOverrides(overrides: Record<string, OverrideInput>): ApplyResult {
+  resetOverrides()
+  const result: ApplyResult = { applied: [], rejected: [] }
+  for (const [key, ov] of Object.entries(overrides)) {
+    const d = getDomain(key)
+    if (!d) continue
+    const errors = d.kind === 'risk' ? validateRiskItems(key, ov.data) : validateStatusList(key, ov.data)
+    if (errors.length) {
+      result.rejected.push({ domain: key, errors })
+      continue
+    }
+    if (d.kind === 'risk') fill(d, ov.data as ChecklistItem[])
+    else fill(d, [], ov.data as GmChecklist)
+    d.override = { updatedAt: ov.updatedAt, updatedBy: ov.updatedBy }
+    result.applied.push(key)
+  }
+  refreshAllItems()
+  return result
+}
+
+// ---- 진단 모드(전체 / 간단) ----
+/** 진단 모드에 맞는 위험 규칙 문항. 간단진단은 quick 표시가 있는 문항만 */
+export function itemsForMode(d: Domain, mode: DiagnosisMode | undefined): ChecklistItem[] {
+  return mode === 'quick' ? d.items.filter((i) => i.quick) : d.items
+}
+
+/** 진단 모드에 맞는 상태 점검표. 간단진단은 quick 항목만 남기고 빈 영역은 뺀다 */
+export function statusForMode(g: GmChecklist, mode: DiagnosisMode | undefined): GmChecklist {
+  if (mode !== 'quick') return g
+  const areas = g.areas.map((a) => ({ ...a, items: a.items.filter((i) => i.quick) })).filter((a) => a.items.length > 0)
+  return { ...g, areas }
+}
+
+/** 모드별 문항 수 */
+export function modeCount(d: Domain, mode: DiagnosisMode): number {
+  return mode === 'quick' ? d.quickCount : d.count
 }

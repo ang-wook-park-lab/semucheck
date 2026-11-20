@@ -1,5 +1,8 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { getDomain, type Labels } from '../lib/checklists'
+import { getDomain, itemsForMode, statusForMode, type Labels } from '../lib/checklists'
+import { can } from '../lib/permissions'
+import { downloadBlob } from '../lib/download'
+import { exportRiskReportXlsx, xlsxFileName } from '../lib/excel'
 import { buildReport, signalOf, weightOf, type Finding, type VerdictLevel } from '../lib/report'
 import { useData } from '../lib/useData'
 import { useAuth } from '../lib/auth'
@@ -47,25 +50,31 @@ export default function ReportPage() {
   const client = clients.find((c) => c.id === diag?.clientId)
   const domain = diag ? getDomain(diag.domain) : undefined
   if (!diag || !client || !domain) return <Navigate to="/diagnoses" replace />
-  if (domain.kind === 'status' && domain.status) return <GeneralReportView checklist={domain.status} diag={diag} client={client} />
+  if (domain.kind === 'status' && domain.status) return <GeneralReportView domain={domain} checklist={statusForMode(domain.status, diag.mode)} diag={diag} client={client} />
 
-  const r = buildReport(domain.items, diag, client)
+  const items = itemsForMode(domain, diag.mode)
+  const r = buildReport(items, diag, client)
   const L = domain.labels
-  const unverified = domain.items.filter((i) => !i.verified_at).length
+  const unverified = items.filter((i) => !i.verified_at).length
   const pct = r.applicable.length ? Math.round((r.answeredCount / r.applicable.length) * 100) : 0
 
   return (
     <article className="report">
       <div className="report-actions no-print">
-        <Link className="btn" to={`/diagnosis/${diag.id}`}>← 체크리스트 수정</Link>
-        <button className="btn primary" onClick={() => window.print()}><Icon name="print" size={16} /> 인쇄 · PDF로 저장</button>
+        {can(user?.role, 'editData') ? <Link className="btn" to={`/diagnosis/${diag.id}`}>← 체크리스트 수정</Link> : <Link className="btn" to="/">← 내 보고서 목록</Link>}
+        <div className="btn-row">
+          <button className="btn" onClick={async () => downloadBlob(await exportRiskReportXlsx(domain, client, diag, r), xlsxFileName('보고서', client.name, domain.label + (diag.mode === 'quick' ? '간단' : '')))}>
+            <Icon name="download" size={16} /> 엑셀로 내려받기
+          </button>
+          <button className="btn primary" onClick={() => window.print()}><Icon name="print" size={16} /> 인쇄 · PDF로 저장</button>
+        </div>
       </div>
 
       <header className="report-head">
         <div>
-          <p className="muted">{domain.label} 진단 보고서</p>
+          <p className="muted">{domain.label} 진단 보고서{diag.mode === 'quick' ? ' · 간단 진단' : ''}</p>
           <h1>{client.name}</h1>
-          <p className="muted">진단일 {fmtDate(diag.updatedAt)} · 담당 컨설턴트 {user?.email} · {client.profile.industry} · 업력 {client.profile.business_age}년 · 근로자 {client.profile.employees}명</p>
+          <p className="muted">진단일 {fmtDate(diag.updatedAt)} · 담당 컨설턴트 {user?.name} · {client.profile.industry} · 업력 {client.profile.business_age}년 · 근로자 {client.profile.employees}명</p>
         </div>
       </header>
 
@@ -143,7 +152,7 @@ export default function ReportPage() {
       )}
 
       <footer className="report-foot small muted">
-        이 보고서는 컨설턴트의 판단을 돕는 참고 자료이며 법률·세무·노무 자문을 대체하지 않습니다. 체크리스트는 초안 단계로 법령·공고 확인일이 없는 문항이 {unverified}/{domain.items.length}개입니다. 금액·비율·기준일은 신청 연도의 최신 법령과 공고로 확인하세요.
+        이 보고서는 컨설턴트의 판단을 돕는 참고 자료이며 법률·세무·노무 자문을 대체하지 않습니다. 체크리스트는 초안 단계로 법령·공고 확인일이 없는 문항이 {unverified}/{items.length}개입니다. 금액·비율·기준일은 신청 연도의 최신 법령과 공고로 확인하세요.
       </footer>
     </article>
   )

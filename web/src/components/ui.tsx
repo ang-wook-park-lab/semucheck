@@ -12,6 +12,11 @@ const PATHS: Record<string, string> = {
   logout: 'M10 4H5v16h5M15 8l4 4-4 4M19 12H9',
   plus: 'M12 5v14M5 12h14',
   trash: 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',
+  bolt: 'M13 3L5 14h6l-1 7 8-11h-6z',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM12 8v5M12 16v.5',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  download: 'M12 4v11M7 11l5 5 5-5M5 20h14',
+  upload: 'M12 16V5M7 9l5-5 5 5M5 20h14',
 }
 
 export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {

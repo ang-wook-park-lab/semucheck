@@ -2,10 +2,32 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { supabase } from './supabase'
 import { createStore, type Store, type StoreMode } from './store'
 import { api, detectApi, type ApiDetection } from './apiClient'
+import type { Role } from './types'
 
 export interface User {
   id: string
-  email: string
+  /** 로그인 아이디(서버 DB 모드). Supabase 모드에서는 이메일 */
+  username: string
+  /** 화면 왼쪽 위에 표시하는 컨설턴트(사용자) 이름 */
+  name: string
+  role: Role
+  /** 고객 계정이 연결된 고객사 */
+  clientId?: string | null
+  /** 관리자가 정해 준 임시 비밀번호를 아직 바꾸지 않았다(바꾸기 전에는 다른 화면을 쓸 수 없다) */
+  mustChangePassword?: boolean
+}
+
+/** 예전 형식의 세션(이름·역할 없음, email 필드)도 읽을 수 있게 보정한다 */
+const normalizeUser = (u: Partial<User> & { id: string; username?: string; email?: string }): User => {
+  const username = u.username ?? u.email ?? ''
+  return {
+    id: u.id,
+    username,
+    name: u.name || username.split('@')[0],
+    role: u.role ?? 'consultant',
+    clientId: u.clientId ?? null,
+    mustChangePassword: u.mustChangePassword === true,
+  }
 }
 
 interface AuthState {
@@ -15,13 +37,15 @@ interface AuthState {
   mode: StoreMode
   /** 데모 모드 여부(이 브라우저에만 저장) */
   demo: boolean
-  /** 서버(api) 모드에서 새 계정을 만들 수 있는지 */
-  signupOpen: boolean
+  /** 자가 가입 가능 여부: 서버 DB 모드에서는 가입이 없다(관리자가 계정을 만든다). 데모·Supabase 모드만 해당 */
+  canSignup: boolean
   /** 서버 DB 감지 결과(데모 모드일 때 원인 안내용). Supabase 모드에서는 null */
   detection: ApiDetection | null
   store: Store | null
-  signIn(email: string, password: string): Promise<void>
-  signUp(email: string, password: string): Promise<string | null>
+  signIn(username: string, password: string): Promise<void>
+  signUp(username: string, password: string, name: string): Promise<string | null>
+  /** 임시 비밀번호를 바꾼 뒤 호출해 화면 제한을 푼다 */
+  markPasswordChanged(): void
   signOut(): Promise<void>
 }
 
@@ -31,11 +55,11 @@ const Ctx = createContext<AuthState | null>(null)
 const DEMO_USERS = 'semucheck:demo-users'
 const DEMO_SESSION = 'semucheck:demo-session'
 
-async function hash(email: string, password: string) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${email}:${password}`))
+async function hash(username: string, password: string) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${username}:${password}`))
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
-const readUsers = (): Record<string, { id: string; hash: string }> => {
+const readUsers = (): Record<string, { id: string; hash: string; name?: string }> => {
   try {
     return JSON.parse(localStorage.getItem(DEMO_USERS) ?? '{}')
   } catch {
@@ -47,19 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<StoreMode>(supabase ? 'supabase' : 'demo')
-  const [signupOpen, setSignupOpen] = useState(false)
   const [detection, setDetection] = useState<ApiDetection | null>(null)
 
   useEffect(() => {
     if (supabase) {
       supabase.auth.getSession().then(({ data }) => {
         const u = data.session?.user
-        setUser(u ? { id: u.id, email: u.email ?? '' } : null)
+        setUser(u ? normalizeUser({ id: u.id, username: u.email ?? '', name: (u.user_metadata?.name as string | undefined) ?? '' }) : null)
         setLoading(false)
       })
       const { data } = supabase.auth.onAuthStateChange((_e, session) => {
         const u = session?.user
-        setUser(u ? { id: u.id, email: u.email ?? '' } : null)
+        setUser(u ? normalizeUser({ id: u.id, username: u.email ?? '', name: (u.user_metadata?.name as string | undefined) ?? '' }) : null)
       })
       return () => data.subscription.unsubscribe()
     }
@@ -71,17 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setDetection(health)
       if (health.kind === 'api') {
         setMode('api')
-        setSignupOpen(health.signup)
         try {
           const me = await api<{ user: User | null }>('GET', '/api/auth/me')
-          if (!cancelled) setUser(me.user)
+          if (!cancelled) setUser(me.user ? normalizeUser(me.user) : null)
         } catch {
           /* 로그아웃 상태로 시작 */
         }
       } else {
         try {
           const s = localStorage.getItem(DEMO_SESSION)
-          if (s) setUser(JSON.parse(s))
+          if (s) setUser(normalizeUser(JSON.parse(s)))
         } catch {
           /* 저장소를 못 읽으면 로그아웃 상태로 시작 */
         }
@@ -99,49 +121,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       mode,
       demo: mode === 'demo',
-      signupOpen,
+      canSignup: mode !== 'api',
       detection,
       store: user ? createStore(user.id, supabase, mode, () => setUser(null)) : null,
-      async signIn(email, password) {
+      async signIn(username, password) {
         if (mode === 'api') {
-          const r = await api<{ user: User }>('POST', '/api/auth/login', { email, password })
-          setUser(r.user)
+          const r = await api<{ user: User }>('POST', '/api/auth/login', { username, password })
+          setUser(normalizeUser(r.user))
           return
         }
         if (supabase) {
-          const { error } = await supabase.auth.signInWithPassword({ email, password })
+          const { error } = await supabase.auth.signInWithPassword({ email: username, password })
           if (error) throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
           return
         }
-        const rec = readUsers()[email.toLowerCase()]
-        if (!rec || rec.hash !== (await hash(email.toLowerCase(), password))) {
-          throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
+        const rec = readUsers()[username.toLowerCase()]
+        if (!rec || rec.hash !== (await hash(username.toLowerCase(), password))) {
+          throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.')
         }
-        const u = { id: rec.id, email: email.toLowerCase() }
+        const u = normalizeUser({ id: rec.id, username: username.toLowerCase(), name: rec.name })
         localStorage.setItem(DEMO_SESSION, JSON.stringify(u))
         setUser(u)
       },
-      async signUp(email, password) {
+      async signUp(username, password, name) {
+        if (mode === 'api') throw new Error('가입 기능은 없습니다. 관리자에게 계정을 요청하세요.')
+        if (!name.trim()) throw new Error('이름을 입력하세요.')
         if (password.length < 8) throw new Error('비밀번호는 8자 이상이어야 합니다.')
-        if (mode === 'api') {
-          const r = await api<{ user: User }>('POST', '/api/auth/signup', { email, password })
-          setUser(r.user)
-          return null
-        }
         if (supabase) {
-          const { data, error } = await supabase.auth.signUp({ email, password })
+          const { data, error } = await supabase.auth.signUp({ email: username, password, options: { data: { name: name.trim() } } })
           if (error) throw new Error(error.message)
           return data.session ? null : '가입 확인 메일을 보냈습니다. 메일의 링크를 누른 뒤 로그인하세요.'
         }
         const users = readUsers()
-        const key = email.toLowerCase()
-        if (users[key]) throw new Error('이미 가입된 이메일입니다.')
-        const u = { id: crypto.randomUUID(), email: key }
-        users[key] = { id: u.id, hash: await hash(key, password) }
+        const key = username.toLowerCase()
+        if (users[key]) throw new Error('이미 사용 중인 아이디입니다.')
+        const u = normalizeUser({ id: crypto.randomUUID(), username: key, name: name.trim() })
+        users[key] = { id: u.id, hash: await hash(key, password), name: u.name }
         localStorage.setItem(DEMO_USERS, JSON.stringify(users))
         localStorage.setItem(DEMO_SESSION, JSON.stringify(u))
         setUser(u)
         return null
+      },
+      markPasswordChanged() {
+        setUser((u) => (u ? { ...u, mustChangePassword: false } : u))
       },
       async signOut() {
         if (mode === 'api') await api('POST', '/api/auth/logout', {}).catch(() => {})
@@ -150,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
       },
     }),
-    [user, loading, mode, signupOpen, detection],
+    [user, loading, mode, detection],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

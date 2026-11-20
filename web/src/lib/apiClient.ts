@@ -28,9 +28,8 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
 
 /** 서버 DB(API) 감지 결과. api 가 아니면 데모 모드로 동작하며, 나머지 값은 화면에 원인을 알려 주는 데 쓴다. */
 export type ApiDetection =
-  | { kind: 'api'; signup: boolean }
+  | { kind: 'api' }
   | { kind: 'nodb' } // 서버는 응답했지만 DATABASE_URL 이 연결되지 않음
-  | { kind: 'unauthorized' } // 사이트 비밀번호(HTTP Basic) 인증이 필요함
   | { kind: 'unavailable' } // API 가 없는 서버(개발 서버)이거나 네트워크 오류
 
 export async function detectApi(): Promise<ApiDetection> {
@@ -39,10 +38,9 @@ export async function detectApi(): Promise<ApiDetection> {
     const t = setTimeout(() => ctrl.abort(), 4000)
     const res = await fetch('/api/health', { credentials: 'same-origin', signal: ctrl.signal })
     clearTimeout(t)
-    if (res.status === 401) return { kind: 'unauthorized' }
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('application/json')) return { kind: 'unavailable' }
-    const j = (await res.json()) as { db?: boolean; signup?: boolean }
-    return j.db === true ? { kind: 'api', signup: j.signup === true } : { kind: 'nodb' }
+    const j = (await res.json()) as { db?: boolean }
+    return j.db === true ? { kind: 'api' } : { kind: 'nodb' }
   } catch {
     return { kind: 'unavailable' }
   }

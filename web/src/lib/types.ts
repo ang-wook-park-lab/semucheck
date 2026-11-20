@@ -21,6 +21,8 @@ export interface ChecklistItem {
   recommendation: string
   source?: string
   verified_at?: string
+  /** 간단진단에 포함되는 문항 */
+  quick?: boolean
 }
 
 export interface ClientProfile {
@@ -39,7 +41,15 @@ export interface Client {
   name: string
   profile: ClientProfile
   createdAt: string
+  /** 담당 컨설턴트(서버 모드). 컨설턴트는 자기 담당만 보이고 관리자는 전체가 보인다 */
+  ownerId?: string
+  ownerName?: string
+  isSample?: boolean
 }
+
+export type Role = 'admin' | 'consultant' | 'client'
+/** 정밀 진단('full', 전체 문항) / 간단 진단('quick', 문항이 적은 버전) */
+export type DiagnosisMode = 'full' | 'quick'
 
 export interface Diagnosis {
   id: string
@@ -48,6 +58,8 @@ export interface Diagnosis {
   answers: Record<string, Answer>
   notes: Record<string, string>
   status: 'in_progress' | 'completed'
+  /** 없으면 정밀 진단 */
+  mode?: DiagnosisMode
   createdAt: string
   updatedAt: string
 }
@@ -64,6 +76,7 @@ export interface GmItem {
   legal_basis?: string
   ocr_uncertain?: boolean
   verified_at?: string
+  quick?: boolean
 }
 
 export interface GmArea {

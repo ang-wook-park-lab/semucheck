@@ -45,6 +45,7 @@
                 "risk_level": { "enum": ["high", "medium", "low"], "description": "개선 우선순위 정렬에 사용" },
                 "legal_basis": { "type": "string" },
                 "ocr_uncertain": { "type": "boolean", "description": "책 스캔 판독이 불확실한 문구" },
+                "quick": { "type": "boolean", "description": "true 면 간단 진단에 포함되는 항목" },
                 "verified_at": { "type": "string", "format": "date" }
               }
             }

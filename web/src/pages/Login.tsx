@@ -2,10 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth'
 
 export default function Login() {
-  const { signIn, signUp, demo, mode, signupOpen, detection } = useAuth()
-  const canSignup = mode !== 'api' || signupOpen
+  const { signIn, signUp, demo, mode, canSignup, detection } = useAuth()
+  const idLabel = mode === 'supabase' ? '이메일' : '아이디'
   const [formMode, setFormMode] = useState<'in' | 'up'>('in')
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState<{ kind: 'error' | 'info'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -15,9 +16,9 @@ export default function Login() {
     setBusy(true)
     setMsg(null)
     try {
-      if (formMode === 'in') await signIn(email.trim(), password)
+      if (formMode === 'in') await signIn(username.trim(), password)
       else {
-        const info = await signUp(email.trim(), password)
+        const info = await signUp(username.trim(), password, name)
         if (info) {
           setMsg({ kind: 'info', text: info })
           setFormMode('in')
@@ -42,19 +43,31 @@ export default function Login() {
         </ul>
       </div>
       <form className="login-card" onSubmit={submit}>
-        <h2>{formMode === 'in' ? '로그인' : '컨설턴트 계정 만들기'}</h2>
-        <p className="muted small">이 화면은 <b>앱 계정</b>(이메일)입니다. 사이트 접속용 아이디·비밀번호와는 별개이며, 처음이면 아래 "가입하기"로 계정을 먼저 만드세요.</p>
+        <h2>{formMode === 'in' ? '로그인' : '계정 만들기'}</h2>
         {demo && (
           <div className="notice">
             <b>데모 모드</b> — 서버 DB(<code>DATABASE_URL</code>)나 Supabase가 연결되지 않아 계정과 진단이 <b>이 브라우저에만</b> 저장됩니다. 실제 운영 전 <code>docs/deploy.md</code>의 DB 연결을 하세요.
             {detection?.kind === 'nodb' && <div className="small"><b>원인:</b> 서버는 응답했지만 DB가 연결되지 않았습니다. 서버의 <code>DATABASE_URL</code> 변수가 적용됐는지 확인하세요(변수 저장 후 재배포 필요).</div>}
-            {detection?.kind === 'unauthorized' && <div className="small"><b>원인:</b> 사이트 인증이 필요합니다. 페이지를 새로고침해 사이트 아이디·비밀번호를 다시 입력하세요.</div>}
             {detection?.kind === 'unavailable' && <div className="small"><b>원인:</b> 서버 상태를 확인하지 못했습니다(개발 서버이거나 네트워크 문제).</div>}
           </div>
         )}
+        {formMode === 'up' && (
+          <label>
+            이름 <small>(화면 왼쪽 위에 표시됩니다)</small>
+            <input type="text" autoComplete="name" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 홍길동 컨설턴트" />
+          </label>
+        )}
         <label>
-          이메일
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          {idLabel}
+          <input
+            type={mode === 'supabase' ? 'email' : 'text'}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </label>
         <label>
           비밀번호 {formMode === 'up' && <small>(8자 이상)</small>}
@@ -62,12 +75,12 @@ export default function Login() {
         </label>
         {msg && <p className={`msg ${msg.kind}`} role="alert">{msg.text}</p>}
         <button className="btn primary wide" disabled={busy}>{busy ? '처리 중…' : formMode === 'in' ? '로그인' : '가입하기'}</button>
-        {(canSignup || formMode === 'up') && (
+        {canSignup && (
           <button type="button" className="link-btn" onClick={() => { setFormMode(formMode === 'in' ? 'up' : 'in'); setMsg(null) }}>
             {formMode === 'in' ? '계정이 없으신가요? 가입하기' : '이미 계정이 있습니다. 로그인'}
           </button>
         )}
-        {mode === 'api' && !signupOpen && formMode === 'in' && <p className="muted small">새 계정은 관리자가 가입을 열어야 만들 수 있습니다.</p>}
+        {mode === 'api' && <p className="muted small">계정은 관리자가 만들어 줍니다. 아이디와 임시 비밀번호를 받았다면 로그인한 뒤 비밀번호를 바꾸세요.</p>}
       </form>
     </div>
   )
