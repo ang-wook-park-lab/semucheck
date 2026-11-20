@@ -54,7 +54,7 @@ export interface Domain {
 const META: Record<string, { label: string; description: string; kind: DomainKind; minItems: number; labels: Labels }> = {
   'policy-fund': { label: '정책자금', description: '정책자금·보증·인증·R&D 신청 가능성과 보완 과제', kind: 'risk', minItems: 10, labels: POLICY_LABELS },
   'corporate-general': { label: '법인 일반관리', description: '경영·재무·세무·노무·자금·계약·운영·문서 8개 영역 64항목 점검', kind: 'status', minItems: 1, labels: COMPLIANCE_LABELS },
-  accounting: { label: '회계', description: '결산·재무제표·세무 리스크 진단', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
+  accounting: { label: '회계', description: '장부·증빙, 부가세·법인세·원천세, 결산, 가지급금 등 회계·세무 리스크 진단', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
   labor: { label: '노무', description: '취업규칙·근태·연차·괴롭힘·징계해고 등 노무 리스크 진단과 HR 경영보고', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
 }
 
