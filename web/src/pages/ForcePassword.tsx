@@ -8,7 +8,7 @@ export default function ForcePassword() {
   return (
     <div className="login-wrap">
       <div className="login-side">
-        <h1>세무체크</h1>
+        <h1>열린세무회계 컨설팅 그룹</h1>
         <p><b>{user.name}</b>님, 처음 오셨습니다.</p>
         <ul>
           <li>관리자가 정해 준 <b>임시 비밀번호</b>는 이번 한 번만 쓰는 비밀번호입니다.</li>

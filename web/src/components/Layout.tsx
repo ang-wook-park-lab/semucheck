@@ -46,8 +46,8 @@ export default function Layout() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-name">세무체크</div>
-          <div className="brand-sub">컨설팅 진단 프로그램</div>
+          <div className="brand-name">열린세무회계 컨설팅 그룹</div>
+          <div className="brand-sub">진단보고서</div>
           {/* 왼쪽 위: 로그인한 컨설턴트(사용자) 이름과 역할 */}
           <div className="brand-user" data-testid="brand-user">
             <div className="brand-user-name">{user?.name}</div>

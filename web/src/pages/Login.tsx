@@ -34,7 +34,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-side">
-        <h1>세무체크</h1>
+        <h1>열린세무회계 컨설팅 그룹</h1>
         <p>정책자금·회계·노무 체크리스트를 체크하면 분야별 진단보고서가 만들어지는 컨설턴트용 진단 프로그램</p>
         <ul>
           <li>신호등(결격·감점·가점) 기준 진단</li>
