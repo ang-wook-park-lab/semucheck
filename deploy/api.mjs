@@ -452,6 +452,10 @@ export async function createDbApi({ connectionString, ssl = false, adminUsername
           await verifyPassword(password, dummyHash) // 계정 존재 여부가 응답 시간으로 드러나지 않게 한다
         }
         if (!good) {
+          // LOGIN_DEBUG=true 일 때만: 로그인이 안 되는 원인을 가리기 위해 입력의 모양(길이)과 계정 상태를 로그에 남긴다. 비밀번호 내용은 남기지 않는다.
+          if (process.env.LOGIN_DEBUG === 'true') {
+            console.log(`[로그인 실패] 아이디 '${username}'(${username.length}자) 계정 ${rows[0] ? `있음(활성 ${rows[0].active}, 임시 비밀번호 ${rows[0].must_change_password})` : '없음'}, 입력한 비밀번호 ${password.length}자`)
+          }
           const cur = rec && rec.resetAt > now ? rec : { count: 0, resetAt: now + LOGIN_WINDOW_MS }
           cur.count++
           fails.set(key, cur)
