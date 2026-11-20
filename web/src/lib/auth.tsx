@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import { createStore, type Store, type StoreMode } from './store'
-import { api, detectApi } from './apiClient'
+import { api, detectApi, type ApiDetection } from './apiClient'
 
 export interface User {
   id: string
@@ -17,6 +17,8 @@ interface AuthState {
   demo: boolean
   /** 서버(api) 모드에서 새 계정을 만들 수 있는지 */
   signupOpen: boolean
+  /** 서버 DB 감지 결과(데모 모드일 때 원인 안내용). Supabase 모드에서는 null */
+  detection: ApiDetection | null
   store: Store | null
   signIn(email: string, password: string): Promise<void>
   signUp(email: string, password: string): Promise<string | null>
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<StoreMode>(supabase ? 'supabase' : 'demo')
   const [signupOpen, setSignupOpen] = useState(false)
+  const [detection, setDetection] = useState<ApiDetection | null>(null)
 
   useEffect(() => {
     if (supabase) {
@@ -65,7 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 서버에 DB(API)가 연결돼 있으면 서버 로그인을 쓰고, 아니면 데모 모드로 동작한다.
       const health = await detectApi()
       if (cancelled) return
-      if (health) {
+      setDetection(health)
+      if (health.kind === 'api') {
         setMode('api')
         setSignupOpen(health.signup)
         try {
@@ -96,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mode,
       demo: mode === 'demo',
       signupOpen,
+      detection,
       store: user ? createStore(user.id, supabase, mode, () => setUser(null)) : null,
       async signIn(email, password) {
         if (mode === 'api') {
@@ -145,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
       },
     }),
-    [user, loading, mode, signupOpen],
+    [user, loading, mode, signupOpen, detection],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

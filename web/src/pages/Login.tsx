@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth'
 
 export default function Login() {
-  const { signIn, signUp, demo, mode, signupOpen } = useAuth()
+  const { signIn, signUp, demo, mode, signupOpen, detection } = useAuth()
   const canSignup = mode !== 'api' || signupOpen
   const [formMode, setFormMode] = useState<'in' | 'up'>('in')
   const [email, setEmail] = useState('')
@@ -43,9 +43,13 @@ export default function Login() {
       </div>
       <form className="login-card" onSubmit={submit}>
         <h2>{formMode === 'in' ? '로그인' : '컨설턴트 계정 만들기'}</h2>
+        <p className="muted small">이 화면은 <b>앱 계정</b>(이메일)입니다. 사이트 접속용 아이디·비밀번호와는 별개이며, 처음이면 아래 "가입하기"로 계정을 먼저 만드세요.</p>
         {demo && (
           <div className="notice">
             <b>데모 모드</b> — 서버 DB(<code>DATABASE_URL</code>)나 Supabase가 연결되지 않아 계정과 진단이 <b>이 브라우저에만</b> 저장됩니다. 실제 운영 전 <code>docs/deploy.md</code>의 DB 연결을 하세요.
+            {detection?.kind === 'nodb' && <div className="small"><b>원인:</b> 서버는 응답했지만 DB가 연결되지 않았습니다. 서버의 <code>DATABASE_URL</code> 변수가 적용됐는지 확인하세요(변수 저장 후 재배포 필요).</div>}
+            {detection?.kind === 'unauthorized' && <div className="small"><b>원인:</b> 사이트 인증이 필요합니다. 페이지를 새로고침해 사이트 아이디·비밀번호를 다시 입력하세요.</div>}
+            {detection?.kind === 'unavailable' && <div className="small"><b>원인:</b> 서버 상태를 확인하지 못했습니다(개발 서버이거나 네트워크 문제).</div>}
           </div>
         )}
         <label>
