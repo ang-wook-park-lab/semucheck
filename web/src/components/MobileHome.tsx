@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { domains } from '../lib/checklists'
 import { useAuth } from '../lib/auth'
-import { fmtDate } from './ui'
+import { fmtDate, Icon } from './ui'
+import { DOMAIN_TAGLINE, domainClass, domainIcon } from '../lib/domainColor'
 import { setViewPref } from '../lib/viewMode'
 import { useData } from '../lib/useData'
 
@@ -24,16 +25,22 @@ export default function MobileHome() {
 
       <div className="pd-list">
         {ready.map((d) => (
-          <section key={d.key} className="pd-card" data-testid={`pd-${d.key}`}>
-            <h2 className="pd-name">{d.label}</h2>
+          <section key={d.key} className={`pd-card ${domainClass(d.key)}`} data-testid={`pd-${d.key}`}>
+            <div className="pd-head">
+              <span className="pd-ico" aria-hidden="true"><Icon name={domainIcon(d.key)} size={24} /></span>
+              <div className="pd-title">
+                <h2 className="pd-name">{d.label}</h2>
+                <p className="pd-tag">{DOMAIN_TAGLINE[d.key] ?? d.description}</p>
+              </div>
+            </div>
             <div className="pd-btns">
               <Link className="pd-btn pd-full" to={`/start/${d.key}`}>
-                <span>정밀 진단</span>
+                <span><Icon name="check" size={17} /> 정밀 진단</span>
                 <small>{d.count}{d.kind === 'status' ? '항목' : '문항'}</small>
               </Link>
               {d.quickCount > 0 && (
                 <Link className="pd-btn pd-quick" to={`/start/${d.key}?mode=quick`}>
-                  <span>간단 진단</span>
+                  <span><Icon name="bolt" size={17} /> 간단 진단</span>
                   <small>{d.quickCount}{d.kind === 'status' ? '항목' : '문항'}</small>
                 </Link>
               )}

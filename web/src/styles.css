@@ -519,3 +519,31 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .pcat-chip[class*=" cc"].on { background: var(--c); color: #fff; }
 .pcat-chip[class*=" cc"].on small { opacity: 0.95; }
 .phone-diag-bar[class*=" cc"] { border-bottom: 5px solid var(--c); }
+
+/* ---------- 분야별 고유 색(.dm-*): 정책자금=초록, 법인 일반관리=보라, 회계=하늘, 창업=장미, 노무=황금 ---------- */
+.dm { --d: var(--navy-700); --dd: var(--navy-800); --dbg: var(--value-bg); }
+.dm-policy-fund { --d: #059669; --dd: #047857; --dbg: #e2f6ee; }
+.dm-corporate-general { --d: #7c3aed; --dd: #6d28d9; --dbg: #eee8fd; }
+.dm-accounting { --d: #0284c7; --dd: #0369a1; --dbg: #dff1fc; }
+.dm-startup { --d: #e11d48; --dd: #be123c; --dbg: #ffe3ea; }
+.dm-labor { --d: #d97706; --dd: #b45309; --dbg: #fdf0d3; }
+
+/* 휴대폰 홈 카드: 왼쪽 색 띠 + 색 아이콘 배지 + 한 줄 설명. 정밀=분야색으로 채움, 간단=같은 색의 연한 바탕 */
+.pd-card.dm { border-left: 7px solid var(--d); padding: 14px 12px 12px; box-shadow: 0 1px 2px rgba(15, 36, 71, 0.06); }
+.pd-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.pd-ico { width: 46px; height: 46px; border-radius: 14px; background: var(--dbg); color: var(--d); display: grid; place-items: center; flex-shrink: 0; }
+.pd-ico svg { width: 26px; height: 26px; }
+.pd-title { min-width: 0; }
+.pd-card.dm .pd-name { margin: 0; color: var(--dd); font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; }
+.pd-tag { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.pd-card.dm .pd-full { background: linear-gradient(135deg, var(--d), var(--dd)); color: #fff; border-color: transparent; box-shadow: 0 2px 6px rgba(15, 36, 71, 0.18); }
+.pd-card.dm .pd-quick { background: var(--dbg); color: var(--dd); border-color: var(--d); }
+.pd-card.dm .pd-full:active { filter: brightness(0.92); }
+.pd-card.dm .pd-quick:active { filter: brightness(0.96); }
+.pd-btn span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* 데스크톱 홈 카드·시작 화면·진단 막대에도 같은 분야 색 */
+.domain-card.dm { border-top: 0; }
+.domain-card.dm .dc-head { background: linear-gradient(135deg, var(--d), var(--dd)); display: flex; align-items: center; gap: 8px; }
+.page-title.dm-title { border-left: 7px solid var(--d); padding-left: 12px; color: var(--dd); }
+.pdb-domain { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 99px; background: var(--dbg); color: var(--dd); border: 1px solid var(--d); flex-shrink: 0; }

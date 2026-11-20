@@ -7,6 +7,7 @@ import { useData } from '../lib/useData'
 import type { Answer, Client, Diagnosis, DiagnosisMode } from '../lib/types'
 import ClientForm from '../components/ClientForm'
 import { usePhone } from '../lib/viewMode'
+import { domainClass } from '../lib/domainColor'
 
 export default function Start() {
   const { domain: key } = useParams()
@@ -45,7 +46,7 @@ export default function Start() {
 
   return (
     <>
-      <h1 className="page-title">{domain.label} {mode === 'quick' ? '간단 진단' : '정밀 진단'} 시작</h1>
+      <h1 className={`page-title dm-title ${domainClass(domain.key)}`}>{domain.label} {mode === 'quick' ? '간단 진단' : '정밀 진단'} 시작</h1>
       {!domain.ready && (
         <div className="notice">
           {domain.label} 체크리스트는 아직 준비 중입니다({domain.count}문항). 책에서 진단 기준을 정리하는 대로 추가됩니다.

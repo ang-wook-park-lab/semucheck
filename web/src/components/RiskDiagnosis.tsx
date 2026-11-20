@@ -7,6 +7,7 @@ import type { Answer, ChecklistItem } from '../lib/types'
 import DiagnosisExcel from './DiagnosisExcel'
 import { usePhone } from '../lib/viewMode'
 import { catClass } from '../lib/catColor'
+import { domainClass } from '../lib/domainColor'
 import { fmtTime, LabelBox, Progress, SignalChip } from './ui'
 
 function AnswerInput({ item, value, onChange }: { item: ChecklistItem; value: Answer | undefined; onChange: (v: Answer | undefined) => void }) {
@@ -97,6 +98,7 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
         <div className={`phone-diag-bar ${catClass(allCats, activeCat)}`} data-testid="phone-diag-bar">
           <div className="pdb-line">
             <span className="pdb-client">{client.name}</span>
+            <span className={`pdb-domain ${domainClass(domain.key)}`}>{domain.label}</span>
             <span className={`pdb-mode ${diag.mode === 'quick' ? 'pdb-quick' : 'pdb-full'}`}>{diag.mode === 'quick' ? '간단' : '정밀'}</span>
             <span className="pdb-count">{answered}/{total}</span>
             <span className="pdb-save">{saveErr ? '저장 실패' : savedAt ? `저장 ${fmtTime(savedAt)}` : '자동 저장'}</span>

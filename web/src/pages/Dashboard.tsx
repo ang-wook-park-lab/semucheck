@@ -4,9 +4,10 @@ import { domains } from '../lib/checklists'
 import { can, ROLE_LABEL } from '../lib/permissions'
 import { useData } from '../lib/useData'
 import DiagnosisTable from '../components/DiagnosisTable'
-import { LabelBox } from '../components/ui'
+import { Icon, LabelBox } from '../components/ui'
 import MobileHome from '../components/MobileHome'
 import { usePhone } from '../lib/viewMode'
+import { domainClass, domainIcon } from '../lib/domainColor'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -45,8 +46,8 @@ export default function Dashboard() {
       <h2 className="section-title">분야별 진단 시작</h2>
       <div className="domain-cards">
         {domains.map((d) => (
-          <div key={d.key} className={`domain-card ${d.ready ? '' : 'disabled'}`}>
-            <div className="dc-head">{d.label}</div>
+          <div key={d.key} className={`domain-card ${domainClass(d.key)} ${d.ready ? '' : 'disabled'}`}>
+            <div className="dc-head"><Icon name={domainIcon(d.key)} size={20} /> {d.label}</div>
             <p>{d.description}</p>
             {d.ready ? (
               <div className="dc-actions">
