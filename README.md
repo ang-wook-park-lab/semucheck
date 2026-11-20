@@ -8,7 +8,7 @@
 2. **체크리스트**: 요약 노트를 진단 문항(JSON)으로 변환해 `checklists/<분야>/`에 저장
 3. **검토**: 컨설턴트가 문항, 판단 기준, 근거 법령을 검토하고 최신 법령에 맞게 수정
 4. **화면**: 시제품 화면을 확인한 뒤 `web/`에서 실제 웹사이트 개발
-5. **배포**: Vercel 배포, Supabase로 로그인과 고객사·진단결과 저장
+5. **배포**: Railway 등 Docker 호스트에 배포(`docs/deploy.md`), Supabase로 로그인과 고객사·진단결과 저장
 
 ## 폴더 구조
 
@@ -19,7 +19,8 @@
 | `checklists/` | 분야별 진단 문항 데이터 (JSON) |
 | `schema/` | 진단 문항 데이터 형식 정의 |
 | `web/` | 웹 프로그램 소스 (실행 방법은 `web/README.md`) |
-| `docs/` | 화면 설계, 진행 기록 |
+| `deploy/` | 배포용 정적 서버(`server.mjs`)와 테스트. 루트의 `Dockerfile`·`railway.json`과 함께 사용 |
+| `docs/` | 배포 안내(`deploy.md`), 화면 설계, 진행 기록 |
 
 분야 폴더 이름: `policy-fund`(정책자금), `corporate-general`(법인 일반관리), `accounting`(회계), `labor`(노무)
 

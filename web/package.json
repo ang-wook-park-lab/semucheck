@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "serve": "node ../deploy/server.mjs",
+    "test:deploy": "node --test ../deploy/server.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

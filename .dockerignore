@@ -1,0 +1,13 @@
+.git
+**/node_modules
+web/dist
+**/dist
+books
+knowledge
+schema
+docs
+deploy/server.test.mjs
+.env*
+!.env.example
+*.zip
+.DS_Store
