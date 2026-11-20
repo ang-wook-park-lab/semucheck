@@ -4,6 +4,7 @@ import { buildReport, signalOf, weightOf, type Finding, type VerdictLevel } from
 import { useData } from '../lib/useData'
 import { useAuth } from '../lib/auth'
 import { fmtDate, Icon, LabelBox, Progress, SignalChip } from '../components/ui'
+import GeneralReportView from '../components/GeneralReportView'
 
 const VERDICT_TONE: Record<VerdictLevel, string> = {
   blocked: 'red', hold: 'red', urgent: 'red', prepare: 'yellow', fix: 'yellow', incomplete: 'gray', immediate: 'blue', good: 'blue',
@@ -46,6 +47,7 @@ export default function ReportPage() {
   const client = clients.find((c) => c.id === diag?.clientId)
   const domain = diag ? getDomain(diag.domain) : undefined
   if (!diag || !client || !domain) return <Navigate to="/diagnoses" replace />
+  if (domain.kind === 'status' && domain.status) return <GeneralReportView checklist={domain.status} diag={diag} client={client} />
 
   const r = buildReport(domain.items, diag, client)
   const unverified = domain.items.filter((i) => !i.verified_at).length

@@ -39,7 +39,7 @@ export default function Start() {
       <h1 className="page-title">{domain.label} 진단 시작</h1>
       {!domain.ready && (
         <div className="notice">
-          {domain.label} 체크리스트는 아직 준비 중입니다({domain.items.length}문항). 책에서 진단 기준을 정리하는 대로 추가됩니다. 지금은 정책자금 진단을 사용하세요.
+          {domain.label} 체크리스트는 아직 준비 중입니다({domain.count}문항). 책에서 진단 기준을 정리하는 대로 추가됩니다. 지금은 정책자금 진단을 사용하세요.
         </div>
       )}
       {err && <p className="msg error">{err}</p>}

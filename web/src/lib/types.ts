@@ -51,3 +51,35 @@ export interface Diagnosis {
   createdAt: string
   updatedAt: string
 }
+
+// ---------- 상태 점검표(○△×—) 방식: 법인 일반관리 64항목 ----------
+export type StatusCode = 'ok' | 'fix' | 'bad' | 'na'
+
+export interface GmItem {
+  id: string
+  text: string
+  check: string
+  recommendation: string
+  risk_level: RiskLevel
+  legal_basis?: string
+  ocr_uncertain?: boolean
+  verified_at?: string
+}
+
+export interface GmArea {
+  id: string
+  name: string
+  key_point: string
+  items: GmItem[]
+}
+
+export interface GmChecklist {
+  id: string
+  domain: string
+  title: string
+  subtitle?: string
+  source: string
+  note?: string
+  status_options: { code: StatusCode; label: string; mark: string }[]
+  areas: GmArea[]
+}

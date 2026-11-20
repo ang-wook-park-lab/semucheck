@@ -22,7 +22,7 @@ export default function Dashboard() {
           <Link key={d.key} to={`/start/${d.key}`} className={`domain-card ${d.ready ? '' : 'disabled'}`}>
             <div className="dc-head">{d.label}</div>
             <p>{d.description}</p>
-            <div className="dc-foot">{d.ready ? `${d.items.length}문항` : d.items.length ? `샘플 ${d.items.length}문항 · 준비 중` : '체크리스트 준비 중'}</div>
+            <div className="dc-foot">{d.ready ? `${d.count}${d.kind === 'status' ? '항목' : '문항'}` : d.count ? `샘플 ${d.count}문항 · 준비 중` : '체크리스트 준비 중'}</div>
           </Link>
         ))}
       </div>

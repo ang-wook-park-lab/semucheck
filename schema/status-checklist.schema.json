@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "상태 점검표 (○△×— 방식)",
+  "description": "위험 규칙(risk_rule)으로 판정하는 진단 문항(checklist-item.schema.json)과 달리, 항목마다 컨설턴트가 양호/보완필요/미흡/해당없음을 직접 고르는 점검표.",
+  "type": "object",
+  "required": ["id", "domain", "title", "source", "status_options", "areas"],
+  "properties": {
+    "id": { "type": "string" },
+    "domain": { "type": "string", "description": "분야 폴더 이름. 예: corporate-general" },
+    "title": { "type": "string" },
+    "subtitle": { "type": "string" },
+    "source": { "type": "string", "description": "출처 책과 장·페이지" },
+    "note": { "type": "string" },
+    "status_options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "label", "mark"],
+        "properties": {
+          "code": { "enum": ["ok", "fix", "bad", "na"] },
+          "label": { "type": "string" },
+          "mark": { "type": "string" }
+        }
+      }
+    },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "key_point", "items"],
+        "properties": {
+          "id": { "type": "string", "description": "예: 01" },
+          "name": { "type": "string" },
+          "key_point": { "type": "string", "description": "영역의 핵심 포인트(점검표 하단 문구)" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "text", "check", "recommendation", "risk_level"],
+              "properties": {
+                "id": { "type": "string", "description": "예: GM-01-01" },
+                "text": { "type": "string", "description": "점검 항목" },
+                "check": { "type": "string", "description": "무엇을 확인하는지" },
+                "recommendation": { "type": "string", "description": "보완필요·미흡일 때 보고서에 나갈 권고" },
+                "risk_level": { "enum": ["high", "medium", "low"], "description": "개선 우선순위 정렬에 사용" },
+                "legal_basis": { "type": "string" },
+                "ocr_uncertain": { "type": "boolean", "description": "책 스캔 판독이 불확실한 문구" },
+                "verified_at": { "type": "string", "format": "date" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Client, Diagnosis } from '../lib/types'
 import { getDomain } from '../lib/checklists'
 import { buildReport } from '../lib/report'
+import { buildGeneralReport } from '../lib/general'
 import { fmtDate, Progress } from './ui'
 
 export default function DiagnosisTable({ diagnoses, clients, onDelete }: { diagnoses: Diagnosis[]; clients: Client[]; onDelete?: (d: Diagnosis) => void }) {
@@ -25,7 +26,12 @@ export default function DiagnosisTable({ diagnoses, clients, onDelete }: { diagn
           let pct = 0
           let reds = 0
           let yellows = 0
-          if (client && dom) {
+          if (client && dom?.kind === 'status' && dom.status) {
+            const r = buildGeneralReport(dom.status, d, client)
+            pct = r.totalCount ? (r.answeredCount / r.totalCount) * 100 : 0
+            reds = r.totals.bad
+            yellows = r.totals.fix
+          } else if (client && dom) {
             const r = buildReport(dom.items, d, client)
             pct = r.applicable.length ? (r.answeredCount / r.applicable.length) * 100 : 0
             reds = r.reds.length

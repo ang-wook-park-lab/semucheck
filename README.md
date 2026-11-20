@@ -21,7 +21,7 @@
 | `web/` | 웹 프로그램 소스 (실행 방법은 `web/README.md`) |
 | `docs/` | 화면 설계, 진행 기록 |
 
-분야 폴더 이름: `policy-fund`(정책자금), `accounting`(회계), `labor`(노무)
+분야 폴더 이름: `policy-fund`(정책자금), `corporate-general`(법인 일반관리), `accounting`(회계), `labor`(노무)
 
 ## 원칙
 
@@ -34,6 +34,7 @@
 | 분야 | 학습한 자료 | 지식 노트 | 체크리스트 |
 |---|---|---|---|
 | 정책자금 | 강민수, 정책자금·인증·R&D 통합 실무서(2026), 1~16부와 부록 A~D | `knowledge/policy-fund/kms-integrated/` (18개 파일) | `checklists/policy-fund/fund-diagnosis.json` (76문항, 초안) |
+| 법인 일반관리 | 정책자금 도서 76장 점검표(그림 16부-3) | `knowledge/policy-fund/kms-integrated/16_part16_consulting-practice.md` | `checklists/corporate-general/general-64.json` (8영역 64항목, ○△×— 점검표, 초안) |
 | 회계 | - | - | - |
 | 노무 | - | - | 샘플 1문항 |
 
