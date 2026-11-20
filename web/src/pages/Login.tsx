@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth'
 
 export default function Login() {
-  const { signIn, signUp, demo } = useAuth()
-  const [mode, setMode] = useState<'in' | 'up'>('in')
+  const { signIn, signUp, demo, mode, signupOpen } = useAuth()
+  const canSignup = mode !== 'api' || signupOpen
+  const [formMode, setFormMode] = useState<'in' | 'up'>('in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState<{ kind: 'error' | 'info'; text: string } | null>(null)
@@ -14,12 +15,12 @@ export default function Login() {
     setBusy(true)
     setMsg(null)
     try {
-      if (mode === 'in') await signIn(email.trim(), password)
+      if (formMode === 'in') await signIn(email.trim(), password)
       else {
         const info = await signUp(email.trim(), password)
         if (info) {
           setMsg({ kind: 'info', text: info })
-          setMode('in')
+          setFormMode('in')
         }
       }
     } catch (err) {
@@ -41,10 +42,10 @@ export default function Login() {
         </ul>
       </div>
       <form className="login-card" onSubmit={submit}>
-        <h2>{mode === 'in' ? '로그인' : '컨설턴트 계정 만들기'}</h2>
+        <h2>{formMode === 'in' ? '로그인' : '컨설턴트 계정 만들기'}</h2>
         {demo && (
           <div className="notice">
-            <b>데모 모드</b> — Supabase가 연결되지 않아 계정과 진단이 <b>이 브라우저에만</b> 저장됩니다. 실제 운영 전 <code>web/README.md</code>의 Supabase 설정을 하세요.
+            <b>데모 모드</b> — 서버 DB(<code>DATABASE_URL</code>)나 Supabase가 연결되지 않아 계정과 진단이 <b>이 브라우저에만</b> 저장됩니다. 실제 운영 전 <code>docs/deploy.md</code>의 DB 연결을 하세요.
           </div>
         )}
         <label>
@@ -52,14 +53,17 @@ export default function Login() {
           <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label>
-          비밀번호 {mode === 'up' && <small>(8자 이상)</small>}
-          <input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} required value={password} onChange={(e) => setPassword(e.target.value)} />
+          비밀번호 {formMode === 'up' && <small>(8자 이상)</small>}
+          <input type="password" autoComplete={formMode === 'in' ? 'current-password' : 'new-password'} required value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         {msg && <p className={`msg ${msg.kind}`} role="alert">{msg.text}</p>}
-        <button className="btn primary wide" disabled={busy}>{busy ? '처리 중…' : mode === 'in' ? '로그인' : '가입하기'}</button>
-        <button type="button" className="link-btn" onClick={() => { setMode(mode === 'in' ? 'up' : 'in'); setMsg(null) }}>
-          {mode === 'in' ? '계정이 없으신가요? 가입하기' : '이미 계정이 있습니다. 로그인'}
-        </button>
+        <button className="btn primary wide" disabled={busy}>{busy ? '처리 중…' : formMode === 'in' ? '로그인' : '가입하기'}</button>
+        {(canSignup || formMode === 'up') && (
+          <button type="button" className="link-btn" onClick={() => { setFormMode(formMode === 'in' ? 'up' : 'in'); setMsg(null) }}>
+            {formMode === 'in' ? '계정이 없으신가요? 가입하기' : '이미 계정이 있습니다. 로그인'}
+          </button>
+        )}
+        {mode === 'api' && !signupOpen && formMode === 'in' && <p className="muted small">새 계정은 관리자가 가입을 열어야 만들 수 있습니다.</p>}
       </form>
     </div>
   )

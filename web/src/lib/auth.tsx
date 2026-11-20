@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { isDemo, supabase } from './supabase'
-import { createStore, type Store } from './store'
+import { supabase } from './supabase'
+import { createStore, type Store, type StoreMode } from './store'
+import { api, detectApi } from './apiClient'
 
 export interface User {
   id: string
@@ -10,7 +11,12 @@ export interface User {
 interface AuthState {
   user: User | null
   loading: boolean
+  /** supabase: Supabase 로그인 / api: 서버(Postgres) 로그인 / demo: 이 브라우저에만 저장 */
+  mode: StoreMode
+  /** 데모 모드 여부(이 브라우저에만 저장) */
   demo: boolean
+  /** 서버(api) 모드에서 새 계정을 만들 수 있는지 */
+  signupOpen: boolean
   store: Store | null
   signIn(email: string, password: string): Promise<void>
   signUp(email: string, password: string): Promise<string | null>
@@ -19,7 +25,7 @@ interface AuthState {
 
 const Ctx = createContext<AuthState | null>(null)
 
-// 데모 모드 계정: 이 브라우저의 localStorage에만 저장되며 보안 수단이 아니다(실서비스는 Supabase 사용).
+// 데모 모드 계정: 이 브라우저의 localStorage에만 저장되며 보안 수단이 아니다(실서비스는 Supabase 또는 서버 DB 사용).
 const DEMO_USERS = 'semucheck:demo-users'
 const DEMO_SESSION = 'semucheck:demo-session'
 
@@ -38,6 +44,8 @@ const readUsers = (): Record<string, { id: string; hash: string }> => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mode, setMode] = useState<StoreMode>(supabase ? 'supabase' : 'demo')
+  const [signupOpen, setSignupOpen] = useState(false)
 
   useEffect(() => {
     if (supabase) {
@@ -52,22 +60,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       return () => data.subscription.unsubscribe()
     }
-    try {
-      const s = localStorage.getItem(DEMO_SESSION)
-      if (s) setUser(JSON.parse(s))
-    } catch {
-      /* 저장소를 못 읽으면 로그아웃 상태로 시작 */
+    let cancelled = false
+    ;(async () => {
+      // 서버에 DB(API)가 연결돼 있으면 서버 로그인을 쓰고, 아니면 데모 모드로 동작한다.
+      const health = await detectApi()
+      if (cancelled) return
+      if (health) {
+        setMode('api')
+        setSignupOpen(health.signup)
+        try {
+          const me = await api<{ user: User | null }>('GET', '/api/auth/me')
+          if (!cancelled) setUser(me.user)
+        } catch {
+          /* 로그아웃 상태로 시작 */
+        }
+      } else {
+        try {
+          const s = localStorage.getItem(DEMO_SESSION)
+          if (s) setUser(JSON.parse(s))
+        } catch {
+          /* 저장소를 못 읽으면 로그아웃 상태로 시작 */
+        }
+      }
+      if (!cancelled) setLoading(false)
+    })()
+    return () => {
+      cancelled = true
     }
-    setLoading(false)
   }, [])
 
   const value = useMemo<AuthState>(
     () => ({
       user,
       loading,
-      demo: isDemo,
-      store: user ? createStore(user.id, supabase) : null,
+      mode,
+      demo: mode === 'demo',
+      signupOpen,
+      store: user ? createStore(user.id, supabase, mode, () => setUser(null)) : null,
       async signIn(email, password) {
+        if (mode === 'api') {
+          const r = await api<{ user: User }>('POST', '/api/auth/login', { email, password })
+          setUser(r.user)
+          return
+        }
         if (supabase) {
           const { error } = await supabase.auth.signInWithPassword({ email, password })
           if (error) throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
@@ -83,6 +118,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async signUp(email, password) {
         if (password.length < 8) throw new Error('비밀번호는 8자 이상이어야 합니다.')
+        if (mode === 'api') {
+          const r = await api<{ user: User }>('POST', '/api/auth/signup', { email, password })
+          setUser(r.user)
+          return null
+        }
         if (supabase) {
           const { data, error } = await supabase.auth.signUp({ email, password })
           if (error) throw new Error(error.message)
@@ -99,12 +139,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null
       },
       async signOut() {
-        if (supabase) await supabase.auth.signOut()
+        if (mode === 'api') await api('POST', '/api/auth/logout', {}).catch(() => {})
+        else if (supabase) await supabase.auth.signOut()
         else localStorage.removeItem(DEMO_SESSION)
         setUser(null)
       },
     }),
-    [user, loading],
+    [user, loading, mode, signupOpen],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

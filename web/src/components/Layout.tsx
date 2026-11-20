@@ -61,7 +61,7 @@ export default function Layout() {
             ))}
           </div>
           <div className="top-actions">
-            {demo && <span className="demo-pill" title="Supabase가 연결되지 않아 이 브라우저에만 저장됩니다">데모 모드</span>}
+            {demo && <span className="demo-pill" title="서버 DB나 Supabase가 연결되지 않아 이 브라우저에만 저장됩니다">데모 모드</span>}
             <span className="who">{user?.email}</span>
             <button className="icon-btn" onClick={() => signOut()} title="로그아웃">
               <Icon name="logout" />

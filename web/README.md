@@ -15,12 +15,15 @@ npm test         # 규칙 해석기·보고서 판정·체크리스트 데이터
 npm run build
 ```
 
-## 로그인·저장 방식 두 가지
+## 로그인·저장 방식 세 가지
 
 | 모드 | 조건 | 동작 |
 |---|---|---|
-| 데모 모드 | `.env`가 없음 | 계정·고객사·진단이 **이 브라우저의 localStorage에만** 저장됩니다. 화면 확인용이며 보안 수단이 아닙니다. |
-| Supabase | `.env`에 URL·anon 키 입력 | 이메일/비밀번호 로그인, 서버 저장. 컨설턴트마다 자기 데이터만 볼 수 있습니다(행 단위 보안, RLS). |
+| 서버 DB | 배포 서버에 `DATABASE_URL`(Postgres)이 있음 | 이메일/비밀번호 로그인(HttpOnly 쿠키 세션), 고객사·진단을 Postgres에 저장. 컨설턴트별 데이터 분리. 설정은 `../docs/deploy.md` |
+| Supabase | 빌드 때 `VITE_SUPABASE_URL`·`VITE_SUPABASE_ANON_KEY`가 있음 | 이메일/비밀번호 로그인, Supabase 저장(행 단위 보안, RLS). 둘 다 있으면 Supabase가 우선 |
+| 데모 모드 | 위 둘 다 없음 | 계정·고객사·진단이 **이 브라우저의 localStorage에만** 저장됩니다. 화면 확인용이며 보안 수단이 아닙니다. |
+
+서버 DB 모드는 프런트가 실행 중에 `/api/health`로 자동 감지합니다(`src/lib/auth.tsx`). `npm run dev`에는 API가 없어 데모 모드로 뜹니다. DB까지 붙여 확인하려면 `npm run build` 후 `DATABASE_URL=... npm run serve`를 쓰세요.
 
 ### Supabase 설정
 1. Supabase 프로젝트를 만들고 SQL Editor에서 `supabase/schema.sql`을 실행합니다.

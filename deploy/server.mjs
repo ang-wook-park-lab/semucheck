@@ -3,6 +3,7 @@
 //  - SITE_PASSWORD 를 설정하면 사이트 전체(JS 번들 포함)를 HTTP Basic 인증으로 보호한다.
 //    체크리스트 데이터가 브라우저로 내려가는 번들에 들어 있으므로, 앱 로그인과 별개로 번들 자체를 보호하는 용도다.
 //  - /healthz 는 인증 없이 200 (호스팅 헬스체크용).
+//  - DATABASE_URL 이 있으면 api.mjs 의 Postgres API(/api/*)를 함께 제공한다. 없으면 /api/health 가 db:false 만 답한다.
 import http from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { createHash, timingSafeEqual } from 'node:crypto'
@@ -64,9 +65,10 @@ function buildCsp(supabaseUrl) {
 
 export function createApp(config = {}) {
   const root = findStaticDir(config.staticDir ?? process.env.STATIC_DIR)
-  const user = config.user ?? process.env.SITE_USER ?? 'consultant'
+  const user = config.user ?? process.env.SITE_USER ?? 'test1'
   const password = config.password ?? process.env.SITE_PASSWORD ?? ''
   const csp = buildCsp(config.supabaseUrl ?? process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)
+  const api = config.api ?? null // createDbApi() 결과(선택)
   const expected = password ? sha(`${user}:${password}`) : null
 
   const gzipCache = new Map() // 파일 경로+수정시각 → gzip 버퍼
@@ -137,7 +139,7 @@ export function createApp(config = {}) {
     send(req, res, 200, body, headers)
   }
 
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     try {
       let pathname
       try {
@@ -149,10 +151,6 @@ export function createApp(config = {}) {
 
       if (pathname === '/healthz') return send(req, res, 200, 'ok', { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
 
-      if (req.method !== 'GET' && req.method !== 'HEAD') {
-        return send(req, res, 405, 'Method Not Allowed', { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' })
-      }
-
       const auth = checkAuth(req)
       if (!auth.ok) {
         if (auth.limited) return send(req, res, 429, 'Too Many Requests', { 'Retry-After': '60', 'Content-Type': 'text/plain; charset=utf-8' })
@@ -161,6 +159,16 @@ export function createApp(config = {}) {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-store',
         })
+      }
+
+      if (pathname === '/api' || pathname.startsWith('/api/')) {
+        if (api) return await api.handle(req, res, { pathname, headers: baseHeaders(req) })
+        const body = pathname === '/api/health' ? { ok: true, db: false, signup: false } : { error: '데이터베이스가 연결되지 않았습니다.' }
+        return send(req, res, pathname === '/api/health' ? 200 : 404, JSON.stringify(body), { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      }
+
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        return send(req, res, 405, 'Method Not Allowed', { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' })
       }
 
       const target = path.resolve(root, '.' + path.posix.normalize('/' + pathname))
@@ -190,11 +198,31 @@ export function createApp(config = {}) {
 // 직접 실행했을 때만 서버를 시작한다(테스트에서는 createApp만 가져다 쓴다).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const port = Number(process.env.PORT ?? 3000)
-  const app = createApp()
+  let api = null
+  if (process.env.DATABASE_URL) {
+    // DB 가 아직 준비되지 않았을 수 있어 몇 번 재시도한다. 끝내 실패하면 종료한다(데모 모드로 조용히 떨어지면 데이터가 브라우저에만 저장되므로).
+    const { createDbApi } = await import('./api.mjs')
+    for (let attempt = 1; ; attempt++) {
+      try {
+        api = await createDbApi({
+          connectionString: process.env.DATABASE_URL,
+          ssl: process.env.DATABASE_SSL === 'true',
+          allowSignup: process.env.ALLOW_SIGNUP === 'true',
+        })
+        break
+      } catch (err) {
+        console.error(`DB 연결 실패(${attempt}/5): ${err.message}`)
+        if (attempt >= 5) process.exit(1)
+        await new Promise((r) => setTimeout(r, 3000))
+      }
+    }
+    console.log('DB 연결 완료, 테이블 확인 완료')
+  }
+  const app = createApp({ api })
   app.listen(port, '0.0.0.0', () => {
-    console.log(`세무체크 서버 시작: 포트 ${port}, 비밀번호 보호 ${process.env.SITE_PASSWORD ? '켜짐' : '꺼짐'}`)
+    console.log(`세무체크 서버 시작: 포트 ${port}, 비밀번호 보호 ${process.env.SITE_PASSWORD ? '켜짐' : '꺼짐'}, DB ${api ? '연결됨' : '없음(데모 모드)'}`)
   })
-  const stop = () => app.close(() => process.exit(0))
+  const stop = () => app.close(() => (api ? api.close().finally(() => process.exit(0)) : process.exit(0)))
   process.on('SIGTERM', stop)
   process.on('SIGINT', stop)
 }

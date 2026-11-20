@@ -19,13 +19,17 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN cd web && npm run build
 
-# ---- 2단계: 실행(정적 서버만 포함, 의존성 없음) ----
+# ---- 2단계: 실행(정적 서버 + Postgres API) ----
 FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
+COPY deploy/package.json deploy/package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 COPY --from=build /repo/web/dist ./dist
-COPY deploy/server.mjs ./server.mjs
+COPY deploy/server.mjs deploy/api.mjs ./
 USER node
 EXPOSE 3000
-# 호스팅이 PORT 를 주입한다(없으면 3000). SITE_PASSWORD 를 설정하면 사이트 전체가 비밀번호로 보호된다.
+# 호스팅이 PORT 를 주입한다(없으면 3000).
+#  SITE_PASSWORD : 설정하면 사이트 전체가 비밀번호로 보호된다.
+#  DATABASE_URL  : 설정하면 Postgres 에 계정·고객사·진단을 저장한다(없으면 데모 모드).
 CMD ["node", "server.mjs"]

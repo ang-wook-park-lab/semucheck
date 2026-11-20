@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { api, ApiError } from './apiClient'
 import type { Client, Diagnosis } from './types'
 
 export interface Store {
@@ -96,6 +97,38 @@ function supabaseStore(sb: SupabaseClient): Store {
   }
 }
 
-export function createStore(userId: string, sb: SupabaseClient | null): Store {
+// ---------- 서버(Postgres): /api/* ----------
+function apiStore(onAuthLost: () => void): Store {
+  // 세션이 만료되면(401) 로그인 화면으로 돌려보낸다.
+  const call = async <T,>(method: string, path: string, body?: unknown): Promise<T> => {
+    try {
+      return await api<T>(method, path, body)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) onAuthLost()
+      throw e
+    }
+  }
+  return {
+    listClients: () => call<Client[]>('GET', '/api/clients'),
+    saveClient: async (c) => {
+      await call('PUT', `/api/clients/${c.id}`, c)
+    },
+    deleteClient: async (id) => {
+      await call('DELETE', `/api/clients/${id}`)
+    },
+    listDiagnoses: () => call<Diagnosis[]>('GET', '/api/diagnoses'),
+    saveDiagnosis: async (d) => {
+      await call('PUT', `/api/diagnoses/${d.id}`, d)
+    },
+    deleteDiagnosis: async (id) => {
+      await call('DELETE', `/api/diagnoses/${id}`)
+    },
+  }
+}
+
+export type StoreMode = 'supabase' | 'api' | 'demo'
+
+export function createStore(userId: string, sb: SupabaseClient | null, mode: StoreMode = sb ? 'supabase' : 'demo', onAuthLost: () => void = () => {}): Store {
+  if (mode === 'api') return apiStore(onAuthLost)
   return sb ? supabaseStore(sb) : localStore(userId)
 }

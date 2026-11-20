@@ -112,3 +112,14 @@ test('인증 실패가 반복되면 429로 제한', async () => {
   assert.equal((await fetch(url, { headers: { authorization: basic('consultant', 'x1') } })).status, 429)
   app.close()
 })
+
+test('SITE_USER 를 따로 정하지 않으면 아이디는 test1', async () => {
+  const saved = process.env.SITE_USER
+  delete process.env.SITE_USER
+  const app = createApp({ staticDir: dir, password: 'only-password' })
+  if (saved !== undefined) process.env.SITE_USER = saved
+  const url = await listen(app)
+  assert.equal((await fetch(url, { headers: { authorization: basic('test1', 'only-password') } })).status, 200)
+  assert.equal((await fetch(url, { headers: { authorization: basic('consultant', 'only-password') } })).status, 401)
+  app.close()
+})

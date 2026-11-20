@@ -6,7 +6,7 @@ books
 knowledge
 schema
 docs
-deploy/server.test.mjs
+deploy/*.test.mjs
 .env*
 !.env.example
 *.zip
