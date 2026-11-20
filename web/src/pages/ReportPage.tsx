@@ -2,6 +2,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { getDomain, itemsForMode, statusForMode, type Labels } from '../lib/checklists'
 import { can } from '../lib/permissions'
 import StartupSummary from '../components/StartupSummary'
+import { catClass } from '../lib/catColor'
 import { downloadBlob } from '../lib/download'
 import { exportRiskReportXlsx, xlsxFileName } from '../lib/excel'
 import { buildReport, signalOf, weightOf, type Finding, type VerdictLevel } from '../lib/report'
@@ -56,6 +57,7 @@ export default function ReportPage() {
   const items = itemsForMode(domain, diag.mode)
   const r = buildReport(items, diag, client)
   const L = domain.labels
+  const allCats = [...new Set(items.map((i) => i.category))]
   const unverified = items.filter((i) => !i.verified_at).length
   const pct = r.applicable.length ? Math.round((r.answeredCount / r.applicable.length) * 100) : 0
 
@@ -99,7 +101,7 @@ export default function ReportPage() {
       <h2 className="section-title">카테고리별 현황</h2>
       <div className="panel cat-table">
         {r.categories.map((c) => (
-          <div key={c.category} className="cat-row">
+          <div key={c.category} className={`cat-row ${catClass(allCats, c.category)}`}>
             <span className="cat-name">{c.category}</span>
             <Progress value={c.applicable ? (c.answered / c.applicable) * 100 : 0} />
             <span className="cat-meta">응답 {c.answered}/{c.applicable} · 해당 {c.flagged}건</span>

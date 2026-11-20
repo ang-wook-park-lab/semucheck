@@ -153,9 +153,26 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .side-panel > * { flex-shrink: 0; }
 .panel-h { font-size: 13px; color: var(--navy-700); margin-top: 6px; }
 .cat-list { display: flex; flex-direction: column; gap: 6px; }
-.cat-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--navy-700); color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; font-size: 13.5px; text-align: left; }
-.cat-btn:not(.on) { background: #5b6f95; }
-.cat-btn.on { background: var(--navy-700); box-shadow: 0 0 0 2px #9ec0ff; }
+/* 카테고리 색: 분야 안에서 카테고리마다 다른 색(.cc0~.cc7). --c 는 진한 색, --cbg 는 연한 배경 */
+.cc0 { --c: #2563eb; --cbg: #e3edff; } .cc1 { --c: #15a34a; --cbg: #dcf5e5; } .cc2 { --c: #9333ea; --cbg: #f0e3fd; } .cc3 { --c: #ea580c; --cbg: #ffe8d6; }
+.cc4 { --c: #0891b2; --cbg: #d8f2f9; } .cc5 { --c: #db2777; --cbg: #fde1ee; } .cc6 { --c: #a16207; --cbg: #fbeec4; } .cc7 { --c: #4338ca; --cbg: #e3e2fc; }
+.cat-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--cbg, #eef2f9); color: var(--c, var(--navy-700)); border: 0; border-left: 8px solid var(--c, var(--navy-700)); border-radius: 8px; padding: 9px 12px; cursor: pointer; font-weight: 700; font-size: 13.5px; text-align: left; }
+.cat-btn:hover { filter: brightness(0.97); }
+.cat-btn.on { background: var(--c, var(--navy-700)); color: #fff; box-shadow: 0 0 0 3px var(--cbg, #9ec0ff); }
+.cat-btn.on .dot { background: #fff; }
+.questions[class*=" cc"] { border-top: 6px solid var(--c); border-radius: 4px 4px 0 0; padding-top: 10px; }
+.cat-title { display: inline-block; margin-left: 4px; padding: 1px 12px; border-radius: 99px; background: var(--c, var(--cbg)); color: #fff; font-size: 0.72em; font-weight: 800; vertical-align: middle; }
+.questions[class*=" cc"] .q { border-left-color: var(--c); }
+.questions[class*=" cc"] .q.done { background: var(--cbg); }
+.questions[class*=" cc"] .q.flag-red { border-left-color: var(--red); background: #fffafa; }
+.questions[class*=" cc"] .q.flag-yellow { border-left-color: #e0a100; background: #fffdf6; }
+.questions[class*=" cc"] .q.flag-blue { border-left-color: var(--blue); background: #fafcff; }
+.questions[class*=" cc"] .seg button.on { background: var(--c); border-color: var(--c); }
+.questions[class*=" cc"] .seg { border-color: var(--c); }
+.questions[class*=" cc"] .seg button { color: var(--c); }
+.questions[class*=" cc"] .seg button.on { color: #fff; }
+.questions[class*=" cc"] .seg button + button { border-left-color: var(--c); }
+.cat-row[class*=" cc"] .cat-name { border-left: 8px solid var(--c); padding-left: 8px; color: var(--c); }
 .cat-count { font-size: 12px; opacity: 0.95; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hot-a); display: inline-block; }
 .save-state { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
@@ -496,3 +513,9 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .phone-diag-actions .btn.wide { min-height: 52px; justify-content: center; font-size: 16px; }
 .phone-diag-actions > * { flex-shrink: 0; }
 @media (max-width: 700px) { .gm-bar { top: var(--phone-top-h); } }
+
+/* 휴대폰: 카테고리 칩·고정 막대에도 카테고리 색 */
+.pcat-chip[class*=" cc"] { border-color: var(--c); color: var(--c); background: var(--cbg); border-width: 2px; }
+.pcat-chip[class*=" cc"].on { background: var(--c); color: #fff; }
+.pcat-chip[class*=" cc"].on small { opacity: 0.95; }
+.phone-diag-bar[class*=" cc"] { border-bottom: 5px solid var(--c); }

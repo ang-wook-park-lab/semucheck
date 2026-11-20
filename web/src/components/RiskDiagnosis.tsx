@@ -6,6 +6,7 @@ import type { ReadyEditor } from '../lib/useDiagnosisEditor'
 import type { Answer, ChecklistItem } from '../lib/types'
 import DiagnosisExcel from './DiagnosisExcel'
 import { usePhone } from '../lib/viewMode'
+import { catClass } from '../lib/catColor'
 import { fmtTime, LabelBox, Progress, SignalChip } from './ui'
 
 function AnswerInput({ item, value, onChange }: { item: ChecklistItem; value: Answer | undefined; onChange: (v: Answer | undefined) => void }) {
@@ -55,6 +56,8 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
   const modeItems = useMemo(() => itemsForMode(domain, diag.mode), [domain, diag.mode])
   const applicable = useMemo(() => modeItems.filter((i) => isApplicable(i, env)), [modeItems, env])
   const categories = useMemo(() => [...new Set(applicable.map((i) => i.category))], [applicable])
+  // 색은 분야 전체 카테고리 순서로 고정(해당 없는 카테고리가 빠져도 색이 바뀌지 않게)
+  const allCats = useMemo(() => [...new Set(modeItems.map((i) => i.category))], [modeItems])
   const activeCat = categories.includes(cat) ? cat : categories[0]
 
   const answeredIn = (items: ChecklistItem[]) => items.filter((i) => diag.answers[i.id] !== undefined && diag.answers[i.id] !== '').length
@@ -91,7 +94,7 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
     <div className={`diag-layout ${phone ? 'phone-diag' : ''}`}>
       {phone && (
         // 휴대폰: 질문이 맨 위에서 바로 보이도록, 진행 현황과 카테고리를 얇은 고정 막대로 줄인다
-        <div className="phone-diag-bar" data-testid="phone-diag-bar">
+        <div className={`phone-diag-bar ${catClass(allCats, activeCat)}`} data-testid="phone-diag-bar">
           <div className="pdb-line">
             <span className="pdb-client">{client.name}</span>
             <span className={`pdb-mode ${diag.mode === 'quick' ? 'pdb-quick' : 'pdb-full'}`}>{diag.mode === 'quick' ? '간단' : '정밀'}</span>
@@ -104,7 +107,7 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
               const items = applicable.filter((i) => i.category === c)
               const flagged = items.filter((i) => isRisk(i.risk_rule, diag.answers[i.id])).length
               return (
-                <button key={c} type="button" role="tab" aria-selected={c === activeCat} className={`pcat-chip ${c === activeCat ? 'on' : ''}`} onClick={() => goCat(c)}>
+                <button key={c} type="button" role="tab" aria-selected={c === activeCat} className={`pcat-chip ${catClass(allCats, c)} ${c === activeCat ? 'on' : ''}`} onClick={() => goCat(c)}>
                   {c} <small>{answeredIn(items)}/{items.length}</small>
                   {flagged > 0 && <i className="dot" title="해당 문항 있음" />}
                 </button>
@@ -129,7 +132,7 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
             const items = applicable.filter((i) => i.category === c)
             const flagged = items.filter((i) => isRisk(i.risk_rule, diag.answers[i.id])).length
             return (
-              <button key={c} className={`cat-btn ${c === activeCat ? 'on' : ''}`} onClick={() => setCat(c)}>
+              <button key={c} className={`cat-btn ${catClass(allCats, c)} ${c === activeCat ? 'on' : ''}`} onClick={() => setCat(c)}>
                 <span>{c}</span>
                 <span className="cat-count">
                   {flagged > 0 && <i className="dot" title="해당 문항 있음" />}
@@ -142,8 +145,8 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
         {actions}
       </aside>}
 
-      <section className="questions">
-        <h1 className="page-title">{domain.label} {diag.mode === 'quick' ? '간단진단' : '체크리스트'} <span className="muted">· {activeCat}</span></h1>
+      <section className={`questions ${catClass(allCats, activeCat)}`}>
+        <h1 className="page-title">{domain.label} {diag.mode === 'quick' ? '간단진단' : '체크리스트'} <span className="cat-title">{activeCat}</span></h1>
         {shown.map((item) => {
           const v = diag.answers[item.id]
           const sig = signalOf(item)
