@@ -27,6 +27,17 @@ export const POLICY_LABELS: Labels = {
   },
 }
 
+/** 창업진단: 신호등은 "창업 인정" 관점으로 읽는다(빨강=창업 제외 사유, 노랑=추가 확인, 파랑=챙기면 좋은 것) */
+export const STARTUP_LABELS: Labels = {
+  red: '창업 제외 사유', yellow: '추가 확인', blue: '챙길 점', bonusRate: '챙긴 비율',
+  roadmap: {
+    now: ['설립·개시 전', '창업 제외 사유 해소(구조 재검토)'],
+    three: ['신고·신청 전', '실질 판단이 필요한 사항 확인'],
+    yearEnd: ['증빙 준비', '업종코드·주주·사업 이전 증빙 정비'],
+    bonus: ['함께 챙기기', '창업기업 확인서·예비창업자 지원 등'],
+  },
+}
+
 export const COMPLIANCE_LABELS: Labels = {
   red: '위반 위험', yellow: '보완 필요', blue: '모범 사례', bonusRate: '모범 사례 도입률',
   roadmap: {
@@ -61,6 +72,7 @@ const META: Record<string, { label: string; description: string; kind: DomainKin
   'policy-fund': { label: '정책자금', description: '정책자금·보증·인증·R&D 신청 가능성과 보완 과제', kind: 'risk', minItems: 10, labels: POLICY_LABELS },
   'corporate-general': { label: '법인 일반관리', description: '경영·재무·세무·노무·자금·계약·운영·문서 8개 영역 64항목 점검', kind: 'status', minItems: 1, labels: COMPLIANCE_LABELS },
   accounting: { label: '회계', description: '장부·증빙, 부가세·법인세·원천세, 결산, 가지급금 등 회계·세무 리스크 진단', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
+  startup: { label: '창업', description: '창업지원법·세법상 창업 해당 여부(폐업 후 재개·법인 전환·기존 주주), 청년·과밀억제권역 진단', kind: 'risk', minItems: 10, labels: STARTUP_LABELS },
   labor: { label: '노무', description: '취업규칙·근태·연차·괴롭힘·징계해고 등 노무 리스크 진단과 HR 경영보고', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
 }
 

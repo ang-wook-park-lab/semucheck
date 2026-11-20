@@ -6,6 +6,7 @@ import { validateRiskItems, validateStatusList } from './checklistValidate'
 import { getBundled, itemsForMode, statusForMode, type Domain } from './checklists'
 import { STATUS_LABEL, STATUS_MARK, NOTE_DATE, NOTE_NEXT, NOTE_SUMMARY, isStatus, type GeneralReport } from './general'
 import type { Report } from './report'
+import { evaluateStartup } from './startup'
 import { signalOf } from './report'
 import type { Answer, ChecklistItem, Client, ClientProfile, Diagnosis, GmArea, GmChecklist, GmItem, StatusCode } from './types'
 
@@ -547,11 +548,22 @@ function finishDiagnosis(errors: string[], current: Diagnosis, answers: Record<s
 // =====================================================================
 export async function exportRiskReportXlsx(domain: Domain, client: Client, diag: Diagnosis, r: Report): Promise<Blob> {
   const L = domain.labels
+  const startup = domain.key === 'startup' ? evaluateStartup(diag.answers) : null
   const summary: Cell[][] = [
     ['고객사', client.name], ['분야', domain.label], ['진단 방식', diag.mode === 'quick' ? '간단 진단' : '정밀 진단'], ['판정', r.verdict.title], ['판정 설명', r.verdict.text],
     [`${L.red} 해당`, r.reds.length], [`${L.yellow} 해당`, r.yellows.length], [`${L.blue} 기회`, r.blues.length],
     ['리스크 지수(%)', r.riskIndex ?? ''], [L.bonusRate + '(%)', r.bonusRate ?? ''],
     ['응답률(%)', r.applicable.length ? Math.round((r.answeredCount / r.applicable.length) * 100) : 0],
+    ...(startup
+      ? ([
+          [startup.support.law, `${startup.support.headline} — ${[...startup.support.reasons, ...startup.support.notes].join(' / ')}`],
+          [startup.tax.law, `${startup.tax.headline} — ${[...startup.tax.reasons, ...startup.tax.notes].join(' / ')}`],
+          ['청년 여부', startup.youth.text],
+          ['수도권과밀억제권역', startup.zone.text],
+          ['세액감면 참고(확정 아님)', startup.benefit.join(' / ')],
+          ['두 기준의 차이', startup.differences.join(' / ')],
+        ] as Cell[][])
+      : []),
   ]
   const label = { red: L.red, yellow: L.yellow, blue: L.blue }
   const found: Cell[][] = [...r.reds, ...r.yellows, ...r.blues].map((f) => [label[signalOf(f.item)], f.item.id, f.item.category, f.item.question, String(f.answer), f.item.recommendation, f.item.consequence ?? '', f.item.legal_basis ?? '', f.note ?? ''])

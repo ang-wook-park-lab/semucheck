@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getDomain, itemsForMode, statusForMode, type Labels } from '../lib/checklists'
 import { can } from '../lib/permissions'
+import StartupSummary from '../components/StartupSummary'
 import { downloadBlob } from '../lib/download'
 import { exportRiskReportXlsx, xlsxFileName } from '../lib/excel'
 import { buildReport, signalOf, weightOf, type Finding, type VerdictLevel } from '../lib/report'
@@ -82,6 +83,8 @@ export default function ReportPage() {
         <div className="verdict-title">{r.verdict.title}</div>
         <p>{r.verdict.text}</p>
       </section>
+
+      {domain.key === 'startup' && <StartupSummary answers={diag.answers} />}
 
       <section className="kpis">
         <LabelBox label={`${L.red}(빨강) 해당`} tone={r.reds.length ? 'red' : undefined}>{r.reds.length}건</LabelBox>

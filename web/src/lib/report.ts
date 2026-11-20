@@ -1,4 +1,5 @@
 import { evalExpr, isRisk, type Env } from './rules'
+import { decideStartupVerdict, evaluateSupport, evaluateTax } from './startup'
 import type { Answer, ChecklistItem, Client, ClientProfile, Diagnosis, RiskLevel, Signal } from './types'
 
 export interface Finding {
@@ -144,6 +145,8 @@ export function buildReport(items: ChecklistItem[], diagnosis: Diagnosis, client
 }
 
 function decideVerdict(d: Diagnosis, reds: Finding[], yellows: Finding[], progress: number): Verdict {
+  // 창업진단은 응답 진행률이 아니라 판정에 필요한 문항(사업자 유형·기존 사업 이력 등)이 채워졌는지로 판정을 보류한다
+  if (d.domain === 'startup') return decideStartupVerdict(evaluateSupport(d.answers), evaluateTax(d.answers))
   if (progress < 0.6) {
     return {
       level: 'incomplete',
