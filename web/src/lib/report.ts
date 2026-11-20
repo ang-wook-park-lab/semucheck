@@ -152,8 +152,8 @@ function decideVerdict(d: Diagnosis, reds: Finding[], yellows: Finding[], progre
     }
   }
   if (d.domain !== 'policy-fund') {
-    if (reds.length) return { level: 'urgent', title: '즉시 조치 필요', text: '결격 또는 중대 위험 문항이 있습니다. 해결 과제를 먼저 처리하세요.' }
-    if (yellows.length) return { level: 'fix', title: '보완 필요', text: '감점 요인이 있습니다. 보완 로드맵 순서대로 정비하세요.' }
+    if (reds.length) return { level: 'urgent', title: '즉시 조치 필요', text: '즉시 시정이 필요한 빨강 문항이 있습니다. 해결 과제를 먼저 처리하세요.' }
+    if (yellows.length) return { level: 'fix', title: '보완 필요', text: '보완이 필요한 노랑 문항이 있습니다. 보완 로드맵 순서대로 정비하세요.' }
     return { level: 'good', title: '양호', text: '응답한 범위에서 위험 요인이 발견되지 않았습니다.' }
   }
   if (reds.some((f) => BLOCKING_IDS.includes(f.item.id))) {

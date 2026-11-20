@@ -24,8 +24,8 @@ export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; s
 
 export const SIGNAL_LABEL: Record<Signal, string> = { red: '결격', yellow: '감점', blue: '가점' }
 
-export function SignalChip({ signal }: { signal: Signal }) {
-  return <span className={`chip chip-${signal}`}>{SIGNAL_LABEL[signal]}</span>
+export function SignalChip({ signal, labels }: { signal: Signal; labels?: Record<Signal, string> }) {
+  return <span className={`chip chip-${signal}`}>{(labels ?? SIGNAL_LABEL)[signal]}</span>
 }
 
 /** 남색 라벨 + 연한 값 칸(입력 패널·수치 표시 공통) */

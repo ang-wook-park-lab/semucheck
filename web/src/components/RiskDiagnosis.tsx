@@ -103,7 +103,7 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
             <article key={item.id} className={`q ${flagged ? `flag-${sig}` : ''} ${v !== undefined ? 'done' : ''}`}>
               <header>
                 <span className="qid">{item.id}</span>
-                <SignalChip signal={sig} />
+                <SignalChip signal={sig} labels={domain.labels} />
                 <span className="weight">중요도 {weightOf(item)}</span>
                 {flagged && <span className="hit">해당됨</span>}
               </header>

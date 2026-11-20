@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { getDomain } from '../lib/checklists'
+import { getDomain, type Labels } from '../lib/checklists'
 import { buildReport, signalOf, weightOf, type Finding, type VerdictLevel } from '../lib/report'
 import { useData } from '../lib/useData'
 import { useAuth } from '../lib/auth'
@@ -10,13 +10,13 @@ const VERDICT_TONE: Record<VerdictLevel, string> = {
   blocked: 'red', hold: 'red', urgent: 'red', prepare: 'yellow', fix: 'yellow', incomplete: 'gray', immediate: 'blue', good: 'blue',
 }
 
-function FindingCard({ f }: { f: Finding }) {
+function FindingCard({ f, labels }: { f: Finding; labels: Labels }) {
   const it = f.item
   return (
     <article className={`finding f-${signalOf(it)}`}>
       <header>
         <span className="qid">{it.id}</span>
-        <SignalChip signal={signalOf(it)} />
+        <SignalChip signal={signalOf(it)} labels={labels} />
         <span className="weight">중요도 {weightOf(it)}</span>
       </header>
       <h4>{it.question}</h4>
@@ -50,6 +50,7 @@ export default function ReportPage() {
   if (domain.kind === 'status' && domain.status) return <GeneralReportView checklist={domain.status} diag={diag} client={client} />
 
   const r = buildReport(domain.items, diag, client)
+  const L = domain.labels
   const unverified = domain.items.filter((i) => !i.verified_at).length
   const pct = r.applicable.length ? Math.round((r.answeredCount / r.applicable.length) * 100) : 0
 
@@ -74,14 +75,14 @@ export default function ReportPage() {
       </section>
 
       <section className="kpis">
-        <LabelBox label="결격(빨강) 해당" tone={r.reds.length ? 'red' : undefined}>{r.reds.length}건</LabelBox>
-        <LabelBox label="감점(노랑) 해당" tone={r.yellows.length ? 'yellow' : undefined}>{r.yellows.length}건</LabelBox>
-        <LabelBox label="가점(파랑) 기회">{r.blues.length}건</LabelBox>
+        <LabelBox label={`${L.red}(빨강) 해당`} tone={r.reds.length ? 'red' : undefined}>{r.reds.length}건</LabelBox>
+        <LabelBox label={`${L.yellow}(노랑) 해당`} tone={r.yellows.length ? 'yellow' : undefined}>{r.yellows.length}건</LabelBox>
+        <LabelBox label={`${L.blue}(파랑) 기회`}>{r.blues.length}건</LabelBox>
         <LabelBox label="리스크 지수" tone="hot">{r.riskIndex === null ? '–' : `${r.riskIndex}%`}</LabelBox>
-        <LabelBox label="가점 확보율">{r.bonusRate === null ? '–' : `${r.bonusRate}%`}</LabelBox>
+        <LabelBox label={L.bonusRate}>{r.bonusRate === null ? '–' : `${r.bonusRate}%`}</LabelBox>
         <LabelBox label="응답률">{pct}%</LabelBox>
       </section>
-      <p className="muted small">리스크 지수는 응답한 결격·감점 문항의 중요도 합계 중 해당된 비율입니다. 낮을수록 좋습니다.</p>
+      <p className="muted small">리스크 지수는 응답한 {L.red}·{L.yellow} 문항의 중요도 합계 중 해당된 비율입니다. 낮을수록 좋습니다.</p>
 
       <h2 className="section-title">카테고리별 현황</h2>
       <div className="panel cat-table">
@@ -100,7 +101,7 @@ export default function ReportPage() {
           <ol className="priority">
             {r.priorities.map((f) => (
               <li key={f.item.id}>
-                <SignalChip signal={signalOf(f.item)} /> {f.item.question}
+                <SignalChip signal={signalOf(f.item)} labels={L} /> {f.item.question}
                 <div className="small muted">{f.item.recommendation}</div>
               </li>
             ))}
@@ -110,10 +111,10 @@ export default function ReportPage() {
 
       <h2 className="section-title">보완 로드맵</h2>
       <div className="roadmap">
-        <Bucket title="즉시" sub="결격 해소(신청 전 필수)" list={r.roadmap.now} />
-        <Bucket title="3개월 이내" sub="영향이 큰 감점 요인" list={r.roadmap.threeMonths} />
-        <Bucket title="결산 전" sub="그 밖의 감점 요인 정비" list={r.roadmap.yearEnd} />
-        <Bucket title="인증·특허" sub="가점 확보 순서" list={r.roadmap.bonus} />
+        <Bucket title={L.roadmap.now[0]} sub={L.roadmap.now[1]} list={r.roadmap.now} />
+        <Bucket title={L.roadmap.three[0]} sub={L.roadmap.three[1]} list={r.roadmap.threeMonths} />
+        <Bucket title={L.roadmap.yearEnd[0]} sub={L.roadmap.yearEnd[1]} list={r.roadmap.yearEnd} />
+        <Bucket title={L.roadmap.bonus[0]} sub={L.roadmap.bonus[1]} list={r.roadmap.bonus} />
       </div>
 
       {r.fundMatches.length > 0 && (
@@ -130,9 +131,9 @@ export default function ReportPage() {
         </>
       )}
 
-      {r.reds.length > 0 && <><h2 className="section-title">결격(빨강) 상세</h2>{r.reds.map((f) => <FindingCard key={f.item.id} f={f} />)}</>}
-      {r.yellows.length > 0 && <><h2 className="section-title">감점(노랑) 상세</h2>{r.yellows.map((f) => <FindingCard key={f.item.id} f={f} />)}</>}
-      {r.blues.length > 0 && <><h2 className="section-title">가점(파랑) 기회 상세</h2>{r.blues.map((f) => <FindingCard key={f.item.id} f={f} />)}</>}
+      {r.reds.length > 0 && <><h2 className="section-title">{L.red}(빨강) 상세</h2>{r.reds.map((f) => <FindingCard key={f.item.id} f={f} labels={L} />)}</>}
+      {r.yellows.length > 0 && <><h2 className="section-title">{L.yellow}(노랑) 상세</h2>{r.yellows.map((f) => <FindingCard key={f.item.id} f={f} labels={L} />)}</>}
+      {r.blues.length > 0 && <><h2 className="section-title">{L.blue}(파랑) 기회 상세</h2>{r.blues.map((f) => <FindingCard key={f.item.id} f={f} labels={L} />)}</>}
 
       {r.unanswered.length > 0 && (
         <>
@@ -142,7 +143,7 @@ export default function ReportPage() {
       )}
 
       <footer className="report-foot small muted">
-        이 보고서는 컨설턴트의 판단을 돕는 참고 자료이며 법률·세무 자문을 대체하지 않습니다. 체크리스트는 초안 단계로 법령·공고 확인일이 없는 문항이 {unverified}/{domain.items.length}개입니다. 금액·비율·기준일은 신청 연도의 최신 법령과 공고로 확인하세요.
+        이 보고서는 컨설턴트의 판단을 돕는 참고 자료이며 법률·세무·노무 자문을 대체하지 않습니다. 체크리스트는 초안 단계로 법령·공고 확인일이 없는 문항이 {unverified}/{domain.items.length}개입니다. 금액·비율·기준일은 신청 연도의 최신 법령과 공고로 확인하세요.
       </footer>
     </article>
   )

@@ -1,30 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { getDomain } from './checklists'
 import { buildReport } from './report'
-import { isRisk } from './rules'
+import { firstWhere, safeAnswers } from './testutil'
 import { EMPTY_PROFILE } from '../components/ClientForm'
-import type { Answer, ChecklistItem, Client, Diagnosis } from './types'
+import type { Answer, Client, Diagnosis } from './types'
 
 const domain = getDomain('policy-fund')!
 const client: Client = { id: 'c1', name: '테스트', profile: { ...EMPTY_PROFILE }, createdAt: '2026-01-01T00:00:00Z' }
-const NUMS = [-1, 0, 1, 2, 3, 4, 5, 6, 39, 40, 41, 69, 70, 84, 85, 99, 100, 101, 200, 201, 1000]
-
-function candidates(it: ChecklistItem): Answer[] {
-  if (it.answer_type === 'yes_no') return ['예', '아니오']
-  if (it.answer_type === 'number') return NUMS
-  return it.options ?? []
-}
-const firstWhere = (it: ChecklistItem, risky: boolean) => candidates(it).find((a) => (isRisk(it.risk_rule, a) === true) === risky)
-
-/** 모든 문항에 위험하지 않은 답을 채운다 */
-function safeAnswers(): Record<string, Answer> {
-  const a: Record<string, Answer> = {}
-  for (const it of domain.items) {
-    const v = firstWhere(it, false)
-    if (v !== undefined) a[it.id] = v
-  }
-  return a
-}
 const diag = (answers: Record<string, Answer>): Diagnosis => ({
   id: 'd1', clientId: 'c1', domain: 'policy-fund', answers, notes: {}, status: 'in_progress', createdAt: '', updatedAt: '',
 })
@@ -40,7 +22,7 @@ describe('체크리스트 데이터 계약', () => {
 })
 
 describe('buildReport 판정', () => {
-  const safe = { ...safeAnswers(), 'FUND-017': 3, 'FUND-023': '증가', 'FUND-042': '예', 'FUND-034': '예' }
+  const safe = { ...safeAnswers(domain.items), 'FUND-017': 3, 'FUND-023': '증가', 'FUND-042': '예', 'FUND-034': '예' }
 
   it('응답이 60% 미만이면 판정 보류', () => {
     const r = buildReport(domain.items, diag({ 'FUND-001': '예' }), client)

@@ -32,7 +32,7 @@ export default function Library() {
             {d.items.length > 0 && (
               <>
                 <p>
-                  <span className="chip chip-red">결격 {sig.red}</span> <span className="chip chip-yellow">감점 {sig.yellow}</span> <span className="chip chip-blue">가점 {sig.blue}</span>
+                  <span className="chip chip-red">{d.labels.red} {sig.red}</span> <span className="chip chip-yellow">{d.labels.yellow} {sig.yellow}</span> <span className="chip chip-blue">{d.labels.blue} {sig.blue}</span>
                 </p>
                 <p className="muted">카테고리: {cats.join(' / ')}</p>
                 <p className="muted">법령·공고 확인일이 비어 있는 문항: {unverified}/{d.items.length} (초안 — 컨설턴트 검토 후 확정)</p>
