@@ -252,7 +252,11 @@ export async function bootstrapAdmin(pool, { adminUsername, adminPassword: rawPa
     } else {
       await pool.query(`insert into app_users (username, name, role, password_hash, must_change_password) values ($1, '관리자', 'admin', $2, true)`, [username, hash])
     }
-    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD(${adminPassword.length}자)로 재설정했습니다. 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
+    // 저장된 값으로 바로 검증해 결과를 남긴다(로그인이 안 될 때 서버 쪽 문제인지 가리기 위함)
+    const saved = await pool.query('select password_hash, role, active from app_users where username = $1', [username])
+    const selfCheck = saved.rows[0] ? await verifyPassword(adminPassword, saved.rows[0].password_hash) : false
+    const total = (await pool.query('select count(*)::int as n from app_users')).rows[0].n
+    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD(${adminPassword.length}자)로 재설정했습니다(자체 로그인 검증 ${selfCheck ? '성공' : '실패'}, 역할 ${saved.rows[0]?.role}, 사용 ${saved.rows[0]?.active}, 전체 계정 ${total}개). 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
     return
   }
   if (cnt[0].n > 0) return
