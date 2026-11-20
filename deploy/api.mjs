@@ -238,8 +238,10 @@ function validateChecklist(domain, data) {
  *  - 첫 로그인 때 비밀번호를 바꿔야 한다.
  * resetAdmin(ADMIN_RESET=true)이면 ADMIN_USERNAME 계정의 비밀번호를 ADMIN_PASSWORD 로 되돌리고(없으면 만들고) 관리자·활성 상태로 만든다(비밀번호 분실 복구용).
  */
-export async function bootstrapAdmin(pool, { adminUsername, adminPassword, resetAdmin = false } = {}) {
+export async function bootstrapAdmin(pool, { adminUsername, adminPassword: rawPassword, resetAdmin = false } = {}) {
   const username = (adminUsername || 'admin').trim().toLowerCase()
+  // 변수 값을 붙여 넣을 때 앞뒤에 딸려 온 공백·줄바꿈은 화면에서 보이지 않아 로그인이 안 되는 원인이 되므로 제거한다
+  const adminPassword = typeof rawPassword === 'string' ? rawPassword.trim() : ''
   const { rows: cnt } = await pool.query('select count(*)::int as n from app_users')
   if (resetAdmin && adminPassword) {
     const hash = await hashPassword(adminPassword)
@@ -250,7 +252,7 @@ export async function bootstrapAdmin(pool, { adminUsername, adminPassword, reset
     } else {
       await pool.query(`insert into app_users (username, name, role, password_hash, must_change_password) values ($1, '관리자', 'admin', $2, true)`, [username, hash])
     }
-    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD 로 재설정했습니다. 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
+    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD(${adminPassword.length}자)로 재설정했습니다. 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
     return
   }
   if (cnt[0].n > 0) return

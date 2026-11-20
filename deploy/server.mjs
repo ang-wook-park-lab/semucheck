@@ -163,7 +163,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
           ssl: process.env.DATABASE_SSL === 'true',
           adminUsername: process.env.ADMIN_USERNAME,
           adminPassword: process.env.ADMIN_PASSWORD,
-          resetAdmin: process.env.ADMIN_RESET === 'true',
+          resetAdmin: process.env.ADMIN_RESET?.trim().toLowerCase() === 'true',
         })
         break
       } catch (err) {

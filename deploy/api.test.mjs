@@ -198,6 +198,14 @@ test('관리자 비밀번호 분실 복구(ADMIN_RESET): 비밀번호를 되돌�
   admin = await login(url, 'admin') // 이후 테스트에서 쓸 관리자 클라이언트로 교체
 })
 
+test('ADMIN_PASSWORD 앞뒤의 보이지 않는 공백·줄바꿈은 무시한다', { skip }, async () => {
+  await bootstrapAdmin(dbApi.pool, { adminUsername: ' Admin ', adminPassword: '  spaced-pass-1 \n', resetAdmin: true })
+  const c = await login(url, 'admin', 'spaced-pass-1') // 공백 없이 입력해도 로그인된다
+  assert.equal((await c.call('GET', '/api/auth/me')).json.user.mustChangePassword, true)
+  assert.equal((await c.call('POST', '/api/auth/password', { currentPassword: 'spaced-pass-1', newPassword: PW })).status, 200)
+  admin = await login(url, 'admin')
+})
+
 test('첫 관리자 계정에도 샘플 데이터가 한 번 들어간다', { skip }, async () => {
   const me = (await admin.call('GET', '/api/auth/me')).json.user
   assert.equal(me.role, 'admin')
