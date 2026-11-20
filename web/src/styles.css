@@ -471,3 +471,28 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .cp-new > summary { list-style: none; display: flex; align-items: center; justify-content: center; min-height: 56px; border: 2px dashed var(--navy-600); border-radius: 12px; background: #fff; color: var(--navy-700); font-weight: 800; font-size: 16px; cursor: pointer; }
 .cp-new > summary::-webkit-details-marker { display: none; }
 .cp-new[open] > summary { margin-bottom: 10px; }
+
+/* ---------- 휴대폰 진단 작성: 질문이 맨 위, 버튼은 맨 아래 ---------- */
+:root { --phone-top-h: 66px; }
+.phone-top { height: var(--phone-top-h); box-sizing: border-box; }
+.phone-name { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+.phone-diag { display: block; }
+.phone-diag-bar { position: sticky; top: var(--phone-top-h); z-index: 10; margin: -14px -14px 12px; padding: 8px 14px 6px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: 0 2px 8px rgba(15, 36, 71, 0.08); }
+.pdb-line { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; min-width: 0; }
+.pdb-client { font-weight: 800; font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.pdb-mode { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 99px; flex-shrink: 0; }
+.pdb-full { background: #e1ecff; color: #1f56ad; } .pdb-quick { background: #fff0d9; color: #a35a00; }
+.pdb-count { font-weight: 800; color: var(--navy-700); flex-shrink: 0; }
+.pdb-save { font-size: 11.5px; color: var(--muted); flex-shrink: 0; }
+.pcat-row { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pcat-row::-webkit-scrollbar { display: none; }
+.pcat-chip { flex-shrink: 0; min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--navy-600); background: #fff; color: var(--navy-700); font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.pcat-chip small { opacity: 0.8; font-size: 12px; }
+.pcat-chip.on { background: var(--navy-700); color: #fff; border-color: var(--navy-700); }
+.phone-diag .questions .page-title { font-size: 17px; margin: 0 0 8px; }
+.phone-diag .next-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin-top: 4px; }
+.phone-diag .next-row .btn { min-height: 52px; font-size: 16px; justify-content: center; }
+.phone-diag-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; padding: 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+.phone-diag-actions .btn.wide { min-height: 52px; justify-content: center; font-size: 16px; }
+.phone-diag-actions > * { flex-shrink: 0; }
+@media (max-width: 700px) { .gm-bar { top: var(--phone-top-h); } }

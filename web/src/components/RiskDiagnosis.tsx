@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { buildEnv, isApplicable, signalOf, weightOf } from '../lib/report'
 import { isRisk } from '../lib/rules'
 import { itemsForMode, type Domain } from '../lib/checklists'
 import type { ReadyEditor } from '../lib/useDiagnosisEditor'
 import type { Answer, ChecklistItem } from '../lib/types'
 import DiagnosisExcel from './DiagnosisExcel'
+import { usePhone } from '../lib/viewMode'
 import { fmtTime, LabelBox, Progress, SignalChip } from './ui'
 
 function AnswerInput({ item, value, onChange }: { item: ChecklistItem; value: Answer | undefined; onChange: (v: Answer | undefined) => void }) {
@@ -48,6 +49,7 @@ function AnswerInput({ item, value, onChange }: { item: ChecklistItem; value: An
 export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain: Domain }) {
   const { diag, client, savedAt, saveErr, setAnswer, setNote, finish } = ed
   const [cat, setCat] = useState<string>('')
+  const phone = usePhone()
 
   const env = useMemo(() => buildEnv(client.profile, diag.answers), [client, diag])
   const modeItems = useMemo(() => itemsForMode(domain, diag.mode), [domain, diag.mode])
@@ -60,10 +62,58 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
   const answered = answeredIn(applicable)
   const shown = applicable.filter((i) => i.category === activeCat)
   const excluded = modeItems.length - total
+  const catIndex = categories.indexOf(activeCat)
+  const goCat = (c: string) => {
+    setCat(c)
+    window.scrollTo({ top: 0 })
+  }
+  // 휴대폰: 고른 카테고리 칩이 막대 안에서 보이도록 가운데로 맞춘다
+  useEffect(() => {
+    if (phone) document.querySelector('.pcat-chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [phone, activeCat])
+
+  const saveState = (
+    <div className="save-state" role="status">
+      {saveErr ? <span className="msg error">{saveErr}</span> : savedAt ? `자동 저장됨 ${fmtTime(savedAt)}` : '변경 시 자동 저장'}
+    </div>
+  )
+  const actions = (
+    <>
+      {saveState}
+      <button className="btn primary wide" onClick={() => finish('completed')}>진단 완료 · 보고서 보기</button>
+      <button className="btn wide" onClick={() => finish(diag.status)}>저장하고 보고서 미리보기</button>
+      <h3 className="panel-h">▸ 엑셀</h3>
+      <DiagnosisExcel domain={domain} ed={ed} compact />
+    </>
+  )
 
   return (
-    <div className="diag-layout">
-      <aside className="side-panel">
+    <div className={`diag-layout ${phone ? 'phone-diag' : ''}`}>
+      {phone && (
+        // 휴대폰: 질문이 맨 위에서 바로 보이도록, 진행 현황과 카테고리를 얇은 고정 막대로 줄인다
+        <div className="phone-diag-bar" data-testid="phone-diag-bar">
+          <div className="pdb-line">
+            <span className="pdb-client">{client.name}</span>
+            <span className={`pdb-mode ${diag.mode === 'quick' ? 'pdb-quick' : 'pdb-full'}`}>{diag.mode === 'quick' ? '간단' : '정밀'}</span>
+            <span className="pdb-count">{answered}/{total}</span>
+            <span className="pdb-save">{saveErr ? '저장 실패' : savedAt ? `저장 ${fmtTime(savedAt)}` : '자동 저장'}</span>
+          </div>
+          <Progress value={total ? (answered / total) * 100 : 0} />
+          <div className="pcat-row" role="tablist" aria-label="카테고리">
+            {categories.map((c) => {
+              const items = applicable.filter((i) => i.category === c)
+              const flagged = items.filter((i) => isRisk(i.risk_rule, diag.answers[i.id])).length
+              return (
+                <button key={c} type="button" role="tab" aria-selected={c === activeCat} className={`pcat-chip ${c === activeCat ? 'on' : ''}`} onClick={() => goCat(c)}>
+                  {c} <small>{answeredIn(items)}/{items.length}</small>
+                  {flagged > 0 && <i className="dot" title="해당 문항 있음" />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {!phone && <aside className="side-panel">
         <h3 className="panel-h">▸ 고객사</h3>
         <LabelBox label="고객사">{client.name}</LabelBox>
         <LabelBox label="진단 방식">{diag.mode === 'quick' ? '간단 진단' : '정밀 진단'}</LabelBox>
@@ -89,14 +139,8 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
             )
           })}
         </div>
-        <div className="save-state" role="status">
-          {saveErr ? <span className="msg error">{saveErr}</span> : savedAt ? `자동 저장됨 ${fmtTime(savedAt)}` : '변경 시 자동 저장'}
-        </div>
-        <button className="btn primary wide" onClick={() => finish('completed')}>진단 완료 · 보고서 보기</button>
-        <button className="btn wide" onClick={() => finish(diag.status)}>저장하고 보고서 미리보기</button>
-        <h3 className="panel-h">▸ 엑셀</h3>
-        <DiagnosisExcel domain={domain} ed={ed} compact />
-      </aside>
+        {actions}
+      </aside>}
 
       <section className="questions">
         <h1 className="page-title">{domain.label} {diag.mode === 'quick' ? '간단진단' : '체크리스트'} <span className="muted">· {activeCat}</span></h1>
@@ -127,12 +171,16 @@ export default function RiskDiagnosis({ ed, domain }: { ed: ReadyEditor; domain:
           )
         })}
         <div className="next-row">
-          {categories.indexOf(activeCat) < categories.length - 1 && (
-            <button className="btn primary" onClick={() => { setCat(categories[categories.indexOf(activeCat) + 1]); window.scrollTo({ top: 0 }) }}>
+          {phone && catIndex > 0 && (
+            <button className="btn" onClick={() => goCat(categories[catIndex - 1])}>‹ 이전</button>
+          )}
+          {catIndex < categories.length - 1 && (
+            <button className="btn primary" onClick={() => goCat(categories[catIndex + 1])}>
               다음 카테고리 ›
             </button>
           )}
         </div>
+        {phone && <div className="phone-diag-actions" data-testid="phone-diag-actions">{actions}</div>}
       </section>
     </div>
   )
