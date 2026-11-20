@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID, scryptSync } from 'node:crypto'
 import { createApp } from './server.mjs'
 import { bootstrapAdmin, createDbApi } from './api.mjs'
 import { ensureSampleSeeded } from './sample.mjs'
@@ -587,7 +587,11 @@ test('역할 도입 전에 만든 계정은 가장 먼저 만든 계정이 관�
     await c.query(`set search_path to ${sch}`)
     // 예전 버전의 테이블(role 컬럼 없음)을 흉내 낸다
     await c.query(`create table app_users (id uuid primary key default gen_random_uuid(), email text not null unique, password_hash text not null, created_at timestamptz not null default now())`)
-    await c.query(`insert into app_users (email, password_hash, created_at) values ('old1@example.com', 'x', now() - interval '2 days'), ('old2@example.com', 'x', now() - interval '1 day')`)
+    // 예전 코드와 같은 형식(scrypt$N$r$p$salt$hash)의 해시로 비밀번호 'old-password-1' 을 저장해 둔다
+    const salt = randomBytes(16)
+    const key = scryptSync('old-password-1', salt, 64, { N: 16384, r: 8, p: 1 })
+    const oldHash = ['scrypt', 16384, 8, 1, salt.toString('base64'), key.toString('base64')].join('$')
+    await c.query(`insert into app_users (email, password_hash, created_at) values ('old1@example.com', $1, now() - interval '2 days'), ('old2@example.com', 'x', now() - interval '1 day')`, [oldHash])
   } finally {
     c.release()
   }
@@ -595,6 +599,16 @@ test('역할 도입 전에 만든 계정은 가장 먼저 만든 계정이 관�
   const api = await createDbApi({ pool: legacyPool })
   const { rows } = await legacyPool.query('select username, role from app_users order by created_at')
   assert.deepEqual(rows, [{ username: 'old1@example.com', role: 'admin' }, { username: 'old2@example.com', role: 'consultant' }]) // 이메일로 만든 예전 계정은 이메일이 그대로 아이디가 된다
+  // 이메일 시절 계정은 이메일 그대로 아이디가 되어 예전 비밀번호로 로그인된다(대소문자 무관)
+  const legacyApp = createApp({ staticDir: dir, api })
+  const legacyUrl = await listen(legacyApp)
+  const lc = client(legacyUrl)
+  const lr = await lc.call('POST', '/api/auth/login', { username: 'Old1@Example.com', password: 'old-password-1' })
+  assert.equal(lr.status, 200, JSON.stringify(lr.json))
+  assert.deepEqual({ username: lr.json.user.username, role: lr.json.user.role, mustChangePassword: lr.json.user.mustChangePassword }, { username: 'old1@example.com', role: 'admin', mustChangePassword: false }) // 예전 계정은 비밀번호 변경을 강요하지 않는다
+  assert.equal((await lc.call('GET', '/api/clients')).status, 200)
+  assert.equal((await client(legacyUrl).call('POST', '/api/auth/login', { username: 'old1@example.com', password: 'wrong' })).status, 401)
+  legacyApp.close()
   assert.equal((await legacyPool.query('select count(*)::int as n from app_clients where is_sample')).rows[0].n, 3) // 관리자가 있으면 샘플도 한 번 들어간다
   await api.close()
   await pool.query(`drop schema ${sch} cascade`)

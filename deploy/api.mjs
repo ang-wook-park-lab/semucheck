@@ -116,6 +116,8 @@ async function verifyPassword(password, stored) {
   return key.length === expected.length && timingSafeEqual(key, expected)
 }
 
+/** 영문·숫자·기호(ASCII 보이는 글자)가 아닌 글자 수. 한글 입력 상태로 영문을 치면 글자 수는 같아도 값이 달라지는 문제를 가리는 데 쓴다 */
+const nonAsciiCount = (s) => [...String(s)].filter((c) => c.codePointAt(0) < 33 || c.codePointAt(0) > 126).length
 const sha256 = (s) => createHash('sha256').update(s).digest('hex')
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const validDate = (v) => (typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? new Date(v) : null)
@@ -256,7 +258,7 @@ export async function bootstrapAdmin(pool, { adminUsername, adminPassword: rawPa
     const saved = await pool.query('select password_hash, role, active from app_users where username = $1', [username])
     const selfCheck = saved.rows[0] ? await verifyPassword(adminPassword, saved.rows[0].password_hash) : false
     const total = (await pool.query('select count(*)::int as n from app_users')).rows[0].n
-    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD(${adminPassword.length}자)로 재설정했습니다(자체 로그인 검증 ${selfCheck ? '성공' : '실패'}, 역할 ${saved.rows[0]?.role}, 사용 ${saved.rows[0]?.active}, 전체 계정 ${total}개). 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
+    console.log(`관리자 계정 '${username}' 의 비밀번호를 ADMIN_PASSWORD(${adminPassword.length}자, 영문·숫자·기호 아닌 글자 ${nonAsciiCount(adminPassword)}개)로 재설정했습니다(자체 로그인 검증 ${selfCheck ? '성공' : '실패'}, 역할 ${saved.rows[0]?.role}, 사용 ${saved.rows[0]?.active}, 전체 계정 ${total}개). 복구가 끝났으면 ADMIN_RESET 변수를 지우세요.`)
     return
   }
   if (cnt[0].n > 0) return
@@ -454,7 +456,7 @@ export async function createDbApi({ connectionString, ssl = false, adminUsername
         if (!good) {
           // LOGIN_DEBUG=true 일 때만: 로그인이 안 되는 원인을 가리기 위해 입력의 모양(길이)과 계정 상태를 로그에 남긴다. 비밀번호 내용은 남기지 않는다.
           if (process.env.LOGIN_DEBUG === 'true') {
-            console.log(`[로그인 실패] 아이디 '${username}'(${username.length}자) 계정 ${rows[0] ? `있음(활성 ${rows[0].active}, 임시 비밀번호 ${rows[0].must_change_password})` : '없음'}, 입력한 비밀번호 ${password.length}자`)
+            console.log(`[로그인 실패] 아이디 '${username}'(${username.length}자) 계정 ${rows[0] ? `있음(활성 ${rows[0].active}, 임시 비밀번호 ${rows[0].must_change_password})` : '없음'}, 입력한 비밀번호 ${password.length}자(영문·숫자·기호 아닌 글자 ${nonAsciiCount(password)}개)`)
           }
           const cur = rec && rec.resetAt > now ? rec : { count: 0, resetAt: now + LOGIN_WINDOW_MS }
           cur.count++
