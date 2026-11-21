@@ -527,6 +527,7 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .dm-accounting { --d: #0284c7; --dd: #0369a1; --dbg: #dff1fc; }
 .dm-startup { --d: #e11d48; --dd: #be123c; --dbg: #ffe3ea; }
 .dm-labor { --d: #d97706; --dd: #b45309; --dbg: #fdf0d3; }
+.dm-credit { --d: #65a30d; --dd: #4d7c0f; --dbg: #ecf7d9; }
 
 /* 휴대폰 홈 카드: 왼쪽 색 띠 + 색 아이콘 배지 + 한 줄 설명. 정밀=분야색으로 채움, 간단=같은 색의 연한 바탕 */
 .pd-card.dm { border-left: 7px solid var(--d); padding: 14px 12px 12px; box-shadow: 0 1px 2px rgba(15, 36, 71, 0.06); }
@@ -547,3 +548,35 @@ code { background: #e3e9f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9
 .domain-card.dm .dc-head { background: linear-gradient(135deg, var(--d), var(--dd)); display: flex; align-items: center; gap: 8px; }
 .page-title.dm-title { border-left: 7px solid var(--d); padding-left: 12px; color: var(--dd); }
 .pdb-domain { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 99px; background: var(--dbg); color: var(--dd); border: 1px solid var(--d); flex-shrink: 0; }
+
+/* ---------- 신용등급 진단 보고서 ---------- */
+.credit-summary { margin-top: 8px; }
+.cs-main { display: flex; align-items: center; gap: 18px; }
+.cs-score { display: flex; align-items: baseline; gap: 2px; min-width: 110px; justify-content: center; color: var(--navy-700); }
+.cs-num { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.cs-unit { font-size: 18px; font-weight: 700; }
+.cs-main-text p { margin: 4px 0 0; }
+.cs-bars { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 10px 0; }
+.cs-bar { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.cs-bar-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.cs-bar-val { margin-left: auto; color: var(--navy-700); font-size: 18px; }
+.ratio-table td { vertical-align: top; }
+.ratio-table .rt-group { font-weight: 800; color: var(--navy-700); background: var(--value-bg); white-space: nowrap; width: 76px; }
+.ratio-table .rt-val { font-weight: 800; white-space: nowrap; }
+.rt-chip { display: inline-block; font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+.rt-chip-good { background: #e3f6ea; color: #1d6b3c; } .rt-chip-watch { background: var(--yellow-bg); color: var(--yellow); }
+.rt-chip-bad { background: var(--red-bg); color: var(--red); } .rt-chip-na { background: #eef1f6; color: var(--muted); }
+.rt-bad td:nth-child(3) { color: var(--red); } .rt-watch .rt-val { color: #8a6100; }
+.target-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.target-list li { display: grid; grid-template-columns: 190px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid #edf1f8; }
+.target-list li:last-child { border-bottom: 0; }
+.target-list li b { color: var(--navy-700); }
+.focus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.focus-card { background: #fff; border: 1px solid var(--line); border-top: 5px solid var(--navy-700); border-radius: var(--radius); padding: 10px 14px; }
+.focus-card h3 { font-size: 15px; color: var(--navy-700); margin: 0 0 4px; }
+.focus-card ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.focus-card li { margin: 3px 0; }
+@media (max-width: 700px) { .cs-main { flex-direction: column; align-items: flex-start; } .target-list li { grid-template-columns: 1fr; gap: 2px; } .cs-num { font-size: 44px; } }
+@media print { .cs-bar, .focus-card, .law-card { break-inside: avoid; } }
+
+.cs-cap { color: var(--red); font-weight: 700; }

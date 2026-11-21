@@ -2,6 +2,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { getDomain, itemsForMode, statusForMode, type Labels } from '../lib/checklists'
 import { can } from '../lib/permissions'
 import StartupSummary from '../components/StartupSummary'
+import CreditSummary from '../components/CreditSummary'
 import { catClass } from '../lib/catColor'
 import { downloadBlob } from '../lib/download'
 import { exportRiskReportXlsx, xlsxFileName } from '../lib/excel'
@@ -87,6 +88,7 @@ export default function ReportPage() {
       </section>
 
       {domain.key === 'startup' && <StartupSummary answers={diag.answers} />}
+      {domain.key === 'credit' && <CreditSummary answers={diag.answers} items={items} />}
 
       <section className="kpis">
         <LabelBox label={`${L.red}(빨강) 해당`} tone={r.reds.length ? 'red' : undefined}>{r.reds.length}건</LabelBox>

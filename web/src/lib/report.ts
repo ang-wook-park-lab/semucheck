@@ -1,5 +1,6 @@
 import { evalExpr, isRisk, type Env } from './rules'
 import { decideStartupVerdict, evaluateSupport, evaluateTax } from './startup'
+import { decideCreditVerdict, evaluateCredit, ratioFindings } from './credit'
 import type { Answer, ChecklistItem, Client, ClientProfile, Diagnosis, RiskLevel, Signal } from './types'
 
 export interface Finding {
@@ -111,6 +112,19 @@ export function buildReport(items: ChecklistItem[], diagnosis: Diagnosis, client
     }
   }
 
+  // 신용등급 진단: 입력한 재무 숫자에서 계산한 재무비율 개선 과제를 우선순위·로드맵·지수에 합친다
+  if (diagnosis.domain === 'credit') {
+    const extra = ratioFindings(diagnosis.answers)
+    const evalRes = evaluateCredit(diagnosis.answers, items)
+    const used = evalRes.ratios.filter((r) => r.status !== 'na').length
+    if (used > 0) catMap.set('재무비율 분석', { category: '재무비율 분석', applicable: evalRes.ratios.length, answered: used, flagged: extra.length })
+    for (const f of extra) {
+      negWeightTotal += weightOf(f.item)
+      negWeightFlagged += weightOf(f.item)
+      ;(signalOf(f.item) === 'red' ? reds : yellows).push({ item: f.item, answer: f.answer })
+    }
+  }
+
   const bySeverity = (a: Finding, b: Finding) =>
     LEVEL_ORDER[a.item.risk_level] - LEVEL_ORDER[b.item.risk_level] || weightOf(b.item) - weightOf(a.item)
   reds.sort(bySeverity)
@@ -137,16 +151,17 @@ export function buildReport(items: ChecklistItem[], diagnosis: Diagnosis, client
     categories: [...catMap.values()],
     riskIndex: negWeightTotal ? Math.round((negWeightFlagged / negWeightTotal) * 100) : null,
     bonusRate: blueAnswered ? Math.round((blueHave / blueAnswered) * 100) : null,
-    verdict: decideVerdict(diagnosis, reds, yellows, progress),
+    verdict: decideVerdict(diagnosis, reds, yellows, progress, items),
     priorities: [...reds, ...yellows].slice(0, 5),
     roadmap,
     fundMatches: diagnosis.domain === 'policy-fund' ? matchFunds(client.profile, diagnosis.answers) : [],
   }
 }
 
-function decideVerdict(d: Diagnosis, reds: Finding[], yellows: Finding[], progress: number): Verdict {
+function decideVerdict(d: Diagnosis, reds: Finding[], yellows: Finding[], progress: number, items: ChecklistItem[]): Verdict {
   // 창업진단은 응답 진행률이 아니라 판정에 필요한 문항(사업자 유형·기존 사업 이력 등)이 채워졌는지로 판정을 보류한다
   if (d.domain === 'startup') return decideStartupVerdict(evaluateSupport(d.answers), evaluateTax(d.answers))
+  if (d.domain === 'credit') return decideCreditVerdict(evaluateCredit(d.answers, items))
   if (progress < 0.6) {
     return {
       level: 'incomplete',

@@ -8,6 +8,7 @@ export const DOMAIN_ICON: Record<string, string> = {
   'corporate-general': 'building',
   accounting: 'calc',
   startup: 'rocket',
+  credit: 'chart',
   labor: 'people',
 }
 export const domainIcon = (key: string): string => DOMAIN_ICON[key] ?? 'doc'
@@ -18,5 +19,6 @@ export const DOMAIN_TAGLINE: Record<string, string> = {
   'corporate-general': '경영·재무·세무·노무 8개 영역 점검',
   accounting: '장부·세무·결산 리스크',
   startup: '창업 해당 여부·청년·과밀억제권역',
+  credit: '신평사가 보는 재무·비재무·기술과 등급 개선',
   labor: '취업규칙·근태·징계 노무 리스크',
 }

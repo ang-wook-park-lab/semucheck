@@ -38,6 +38,17 @@ export const STARTUP_LABELS: Labels = {
   },
 }
 
+/** 기업신용등급 진단: 빨강=즉시 위험, 노랑=개선 필요, 파랑=가점 기회 */
+export const CREDIT_LABELS: Labels = {
+  red: '즉시 위험', yellow: '개선 필요', blue: '가점 기회', bonusRate: '가점 확보율',
+  roadmap: {
+    now: ['즉시', '가지급금·자본잠식 등 즉시 위험 해소'],
+    three: ['3개월 이내', '가수금·개발비·영업이익 정리'],
+    yearEnd: ['결산 전', '부채비율·유동성·회전율 정비(가결산)'],
+    bonus: ['인증·특허·비재무', '가점 확보와 사업현황서 보강'],
+  },
+}
+
 export const COMPLIANCE_LABELS: Labels = {
   red: '위반 위험', yellow: '보완 필요', blue: '모범 사례', bonusRate: '모범 사례 도입률',
   roadmap: {
@@ -72,6 +83,7 @@ const META: Record<string, { label: string; description: string; kind: DomainKin
   'policy-fund': { label: '정책자금', description: '정책자금·보증·인증·R&D 신청 가능성과 보완 과제', kind: 'risk', minItems: 10, labels: POLICY_LABELS },
   'corporate-general': { label: '법인 일반관리', description: '경영·재무·세무·노무·자금·계약·운영·문서 8개 영역 64항목 점검', kind: 'status', minItems: 1, labels: COMPLIANCE_LABELS },
   accounting: { label: '회계', description: '장부·증빙, 부가세·법인세·원천세, 결산, 가지급금 등 회계·세무 리스크 진단', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
+  credit: { label: '신용등급', description: '신용평가사가 보는 재무·비재무·기술 지표로 기업신용등급 진단과 개선 보고서', kind: 'risk', minItems: 10, labels: CREDIT_LABELS },
   startup: { label: '창업', description: '창업지원법·세법상 창업 해당 여부(폐업 후 재개·법인 전환·기존 주주), 청년·과밀억제권역 진단', kind: 'risk', minItems: 10, labels: STARTUP_LABELS },
   labor: { label: '노무', description: '취업규칙·근태·연차·괴롭힘·징계해고 등 노무 리스크 진단과 HR 경영보고', kind: 'risk', minItems: 10, labels: COMPLIANCE_LABELS },
 }

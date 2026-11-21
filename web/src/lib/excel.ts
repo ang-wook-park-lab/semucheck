@@ -7,6 +7,7 @@ import { getBundled, itemsForMode, statusForMode, type Domain } from './checklis
 import { STATUS_LABEL, STATUS_MARK, NOTE_DATE, NOTE_NEXT, NOTE_SUMMARY, isStatus, type GeneralReport } from './general'
 import type { Report } from './report'
 import { evaluateStartup } from './startup'
+import { evaluateCredit } from './credit'
 import { signalOf } from './report'
 import type { Answer, ChecklistItem, Client, ClientProfile, Diagnosis, GmArea, GmChecklist, GmItem, StatusCode } from './types'
 
@@ -549,6 +550,7 @@ function finishDiagnosis(errors: string[], current: Diagnosis, answers: Record<s
 export async function exportRiskReportXlsx(domain: Domain, client: Client, diag: Diagnosis, r: Report): Promise<Blob> {
   const L = domain.labels
   const startup = domain.key === 'startup' ? evaluateStartup(diag.answers) : null
+  const credit = domain.key === 'credit' ? evaluateCredit(diag.answers, itemsForMode(domain, diag.mode)) : null
   const summary: Cell[][] = [
     ['고객사', client.name], ['분야', domain.label], ['진단 방식', diag.mode === 'quick' ? '간단 진단' : '정밀 진단'], ['판정', r.verdict.title], ['판정 설명', r.verdict.text],
     [`${L.red} 해당`, r.reds.length], [`${L.yellow} 해당`, r.yellows.length], [`${L.blue} 기회`, r.blues.length],
@@ -564,12 +566,28 @@ export async function exportRiskReportXlsx(domain: Domain, client: Client, diag:
           ['두 기준의 차이', startup.differences.join(' / ')],
         ] as Cell[][])
       : []),
+    ...(credit
+      ? ([
+          ['등급 준비도(참고용, 점)', credit.scores.total ?? ''],
+          ['준비도 구간', `${credit.band.label} — ${credit.band.text}`],
+          ['재무 점수(70%)', credit.scores.financial ?? ''],
+          ['비재무 점수(25%)', credit.scores.nonfinancial ?? ''],
+          ['기술 점수(5%)', credit.scores.tech ?? ''],
+          ['등급 목표', credit.goalGap],
+        ] as Cell[][])
+      : []),
   ]
   const label = { red: L.red, yellow: L.yellow, blue: L.blue }
   const found: Cell[][] = [...r.reds, ...r.yellows, ...r.blues].map((f) => [label[signalOf(f.item)], f.item.id, f.item.category, f.item.question, String(f.answer), f.item.recommendation, f.item.consequence ?? '', f.item.legal_basis ?? '', f.note ?? ''])
   const open: Cell[][] = r.unanswered.map((i) => [i.id, i.category, i.question])
   return writeWorkbook([
     { sheet: '요약', header: ['항목', '내용'], rows: summary, widths: [18, 90] },
+    ...(credit
+      ? [
+          { sheet: '재무비율', header: ['구분', '지표', '현재', '기준', '판정', '비고'], rows: credit.ratios.map((x) => [x.group, x.label, x.display, x.criterion, ({ good: '양호', watch: '주의', bad: '위험', na: '입력 필요' } as const)[x.status], x.note ?? ''] as Cell[]), widths: [10, 22, 24, 52, 10, 40] },
+          { sheet: '필요 개선액', header: ['항목', '내용'], rows: credit.targets.map((x) => [x.label, x.text] as Cell[]), widths: [24, 100] },
+        ]
+      : []),
     { sheet: '해당 항목', header: ['구분', '문항ID', '카테고리', '질문', '응답', '개선 권고', '불이익', '근거법령', '메모'], rows: found, widths: [12, 11, 16, 44, 14, 56, 30, 28, 30] },
     { sheet: '미응답', header: ['문항ID', '카테고리', '질문'], rows: open, widths: [11, 16, 70] },
   ])
